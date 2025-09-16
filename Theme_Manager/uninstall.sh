@@ -1,7 +1,7 @@
 #!/bin/bash
 
 # Hestia Theme Manager Uninstallation Script
-# Version: 1.0.0
+# Version: 2.0.0
 
 set -e
 
@@ -14,6 +14,7 @@ NC='\033[0m' # No Color
 # Configuration
 PLUGIN_DIR="/usr/local/hestia/plugins/theme-manager"
 HESTIA_WEB_DIR="/usr/local/hestia/web"
+BACKUP_DIR="$PLUGIN_DIR/backups"
 
 # Function to print colored output
 print_status() {
@@ -51,6 +52,9 @@ confirm_uninstall() {
     echo
     print_warning "This will:"
     echo "  - Restore the original Hestia theme"
+    echo "  - Restore original patched files (list/index.php, inc/main.php, login/index.php)"
+    echo "  - Remove dashboard folder and files"
+    echo "  - Remove custom CSS themes"
     echo "  - Remove all custom themes"
     echo "  - Delete plugin files and configurations"
     echo "  - Remove web interface and CLI command"
@@ -79,6 +83,69 @@ backup_themes() {
     fi
 }
 
+# Function to restore original patched files
+restore_original_patched_files() {
+    print_status "Restoring original patched files..."
+    
+    # Define files to restore with their backup and target paths
+    declare -A FILES_TO_RESTORE=(
+        ["$BACKUP_DIR/original-files/list_index.php"]="/usr/local/hestia/web/list/index.php"
+        ["$BACKUP_DIR/original-files/main.php"]="/usr/local/hestia/web/inc/main.php"
+        ["$BACKUP_DIR/original-files/login_index.php"]="/usr/local/hestia/web/login/index.php"
+    )
+    
+    local restored_files=0
+    
+    for backup_file in "${!FILES_TO_RESTORE[@]}"; do
+        target_file="${FILES_TO_RESTORE[$backup_file]}"
+        
+        if [ -f "$backup_file" ]; then
+            # Restore the original file
+            cp "$backup_file" "$target_file"
+            
+            # Set proper permissions
+            chown hestiaweb:hestiaweb "$target_file"
+            chmod 644 "$target_file"
+            
+            print_status "Restored: $(basename "$target_file")"
+            restored_files=$((restored_files + 1))
+        else
+            print_warning "Backup file not found: $backup_file"
+        fi
+    done
+    
+    if [ $restored_files -gt 0 ]; then
+        print_status "Original patched files restored successfully"
+    else
+        print_warning "No original files were restored - backups may not exist"
+    fi
+}
+
+# Function to remove dashboard folder
+remove_dashboard() {
+    print_status "Removing dashboard folder..."
+    
+    DASHBOARD_DIR="/usr/local/hestia/web/list/dashboard"
+    if [ -d "$DASHBOARD_DIR" ]; then
+        rm -rf "$DASHBOARD_DIR"
+        print_status "Dashboard folder removed"
+    fi
+    
+    # Remove custom CSS theme
+    CSS_THEME="/usr/local/hestia/web/css/themes/custom/glass_color_theme.css"
+    if [ -f "$CSS_THEME" ]; then
+        rm "$CSS_THEME"
+        print_status "Custom CSS theme removed"
+    fi
+    
+    # Remove custom themes directory if empty
+    CUSTOM_THEMES_DIR="/usr/local/hestia/web/css/themes/custom"
+    if [ -d "$CUSTOM_THEMES_DIR" ] && [ -z "$(ls -A $CUSTOM_THEMES_DIR)" ]; then
+        rmdir "$CUSTOM_THEMES_DIR"
+        print_status "Empty custom themes directory removed"
+    fi
+}
+
 # Function to restore original theme
 restore_original_theme() {
     print_status "Restoring original Hestia theme..."
@@ -102,9 +169,9 @@ restore_original_theme() {
 
 # Function to manually restore original theme
 manual_restore_original() {
-    BACKUP_DIR="$PLUGIN_DIR/backups/original"
+    BACKUP_DIR_ORIG="$PLUGIN_DIR/backups/original"
     
-    if [ -d "$BACKUP_DIR" ]; then
+    if [ -d "$BACKUP_DIR_ORIG" ]; then
         print_status "Manually restoring original files..."
         
         # Define the template files to restore
@@ -125,16 +192,16 @@ manual_restore_original() {
         
         # Restore template files
         for file in "${TEMPLATE_FILES[@]}"; do
-            if [ -f "$BACKUP_DIR/$file" ]; then
-                cp "$BACKUP_DIR/$file" "/usr/local/hestia/web/templates/$file"
+            if [ -f "$BACKUP_DIR_ORIG/$file" ]; then
+                cp "$BACKUP_DIR_ORIG/$file" "/usr/local/hestia/web/templates/$file"
                 chmod 644 "/usr/local/hestia/web/templates/$file"
             fi
         done
         
         # Restore page files
-        if [ -d "$BACKUP_DIR/pages" ]; then
-            find "$BACKUP_DIR/pages" -name "*.php" -type f | while read -r file; do
-                rel_path=${file#$BACKUP_DIR/}
+        if [ -d "$BACKUP_DIR_ORIG/pages" ]; then
+            find "$BACKUP_DIR_ORIG/pages" -name "*.php" -type f | while read -r file; do
+                rel_path=${file#$BACKUP_DIR_ORIG/}
                 target="/usr/local/hestia/web/templates/$rel_path"
                 cp "$file" "$target"
                 chmod 644 "$target"
@@ -144,6 +211,18 @@ manual_restore_original() {
         print_status "Manual restore completed"
     else
         print_warning "Original backup not found - original files may not be restored"
+    fi
+}
+
+# Function to remove web interface (placeholder for future implementation)
+remove_web_interface() {
+    print_status "Removing web interface..."
+    
+    # Remove any web interface files that might have been created
+    WEB_INTERFACE_FILE="/usr/local/hestia/web/theme-manager.php"
+    if [ -f "$WEB_INTERFACE_FILE" ]; then
+        rm "$WEB_INTERFACE_FILE"
+        print_status "Web interface file removed"
     fi
 }
 
@@ -203,6 +282,12 @@ show_summary() {
     echo "======================================"
     echo
     print_status "✓ Original Hestia theme restored"
+    print_status "✓ Original patched files restored:"
+    echo "    - list/index.php"
+    echo "    - inc/main.php" 
+    echo "    - login/index.php"
+    print_status "✓ Dashboard folder removed"
+    print_status "✓ Custom CSS themes removed"
     print_status "✓ Plugin files removed"
     print_status "✓ Web interface removed"
     print_status "✓ CLI command removed"
@@ -228,7 +313,9 @@ show_summary() {
 force_uninstall() {
     print_warning "Force uninstall mode - skipping confirmations"
     
-    # Skip backup in force mode
+    # Skip backup in force mode but still restore original files
+    restore_original_patched_files
+    remove_dashboard
     remove_web_interface
     remove_cli_command
     remove_logrotate
@@ -259,6 +346,8 @@ main() {
     check_plugin_installed
     confirm_uninstall
     backup_themes
+    restore_original_patched_files
+    remove_dashboard
     restore_original_theme
     remove_web_interface
     remove_cli_command
@@ -296,6 +385,11 @@ case "${1:-uninstall}" in
         echo
         echo "The uninstaller will:"
         echo "  - Restore original Hestia theme"
+        echo "  - Restore original patched files:"
+        echo "    • list/index.php"
+        echo "    • inc/main.php"
+        echo "    • login/index.php"
+        echo "  - Remove dashboard folder and custom CSS"
         echo "  - Backup custom themes to /tmp/"
         echo "  - Remove all plugin files and configurations"
         echo "  - Clean up web interface and CLI command"
