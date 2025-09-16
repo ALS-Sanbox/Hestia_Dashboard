@@ -1,7 +1,7 @@
 #!/bin/bash
 
 # Hestia Theme Manager Installation Script
-# Version: 1.0.0
+# Version: 2.0.0
 
 set -e
 
@@ -16,6 +16,7 @@ PLUGIN_DIR="/usr/local/hestia/plugins/theme-manager"
 HESTIA_WEB_DIR="/usr/local/hestia/web"
 THEME_DIR="$HESTIA_WEB_DIR/themes"
 SCRIPT_DIR="$(cd "$(dirname "${BASH_SOURCE[0]}")" && pwd)"
+BACKUP_DIR="$PLUGIN_DIR/backups"
 
 # Function to print colored output
 print_status() {
@@ -62,14 +63,121 @@ create_directories() {
     mkdir -p "$PLUGIN_DIR/backups"
     mkdir -p "$PLUGIN_DIR/config"
     mkdir -p "$PLUGIN_DIR/logs"
+    mkdir -p "$BACKUP_DIR/original-files"  # For backing up original patched files
+    
+    # Create CSS themes directory for custom themes
+    mkdir -p "$HESTIA_WEB_DIR/css/themes/custom"
     
     # Set permissions
     chown -R hestiaweb:hestiaweb "$PLUGIN_DIR"
     chown -R hestiaweb:hestiaweb "$THEME_DIR"
+    chown -R hestiaweb:hestiaweb "$HESTIA_WEB_DIR/css/themes/custom"
     chmod -R 755 "$PLUGIN_DIR"
     chmod -R 755 "$THEME_DIR"
+    chmod -R 755 "$HESTIA_WEB_DIR/css/themes/custom"
     
     print_status "Plugin directories created"
+}
+
+# Function to backup original files before patching
+backup_original_files() {
+    print_status "Backing up original Hestia files..."
+    
+    # Define files to backup with their source and destination paths
+    declare -A FILES_TO_BACKUP=(
+        ["/usr/local/hestia/web/list/index.php"]="$BACKUP_DIR/original-files/list_index.php"
+        ["/usr/local/hestia/web/inc/main.php"]="$BACKUP_DIR/original-files/main.php"
+        ["/usr/local/hestia/web/login/index.php"]="$BACKUP_DIR/original-files/login_index.php"
+    )
+    
+    for source_file in "${!FILES_TO_BACKUP[@]}"; do
+        backup_file="${FILES_TO_BACKUP[$source_file]}"
+        
+        if [ -f "$source_file" ]; then
+            # Create backup directory if it doesn't exist
+            mkdir -p "$(dirname "$backup_file")"
+            
+            # Copy original file to backup location
+            cp "$source_file" "$backup_file"
+            print_status "Backed up: $(basename "$source_file")"
+        else
+            print_warning "Original file not found: $source_file"
+        fi
+    done
+    
+    print_status "Original files backed up"
+}
+
+# Function to apply patch files
+apply_patch_files() {
+    print_status "Applying patch files..."
+    
+    # Define patch files mapping: patch_file -> target_file
+    declare -A PATCH_FILES=(
+        ["$SCRIPT_DIR/patch_files/list_index.php"]="/usr/local/hestia/web/list/index.php"
+        ["$SCRIPT_DIR/patch_files/main.php"]="/usr/local/hestia/web/inc/main.php"
+        ["$SCRIPT_DIR/patch_files/login_index.php"]="/usr/local/hestia/web/login/index.php"
+    )
+    
+    for patch_file in "${!PATCH_FILES[@]}"; do
+        target_file="${PATCH_FILES[$patch_file]}"
+        
+        if [ -f "$patch_file" ]; then
+            # Create target directory if it doesn't exist
+            mkdir -p "$(dirname "$target_file")"
+            
+            # Copy patch file to target location
+            cp "$patch_file" "$target_file"
+            
+            # Set proper permissions
+            chown hestiaweb:hestiaweb "$target_file"
+            chmod 644 "$target_file"
+            
+            print_status "Applied patch: $(basename "$patch_file") -> $(basename "$target_file")"
+        else
+            print_error "Patch file not found: $patch_file"
+            exit 1
+        fi
+    done
+    
+    print_status "All patch files applied successfully"
+}
+
+# Function to create dashboard folder and copy files
+create_dashboard() {
+    print_status "Creating dashboard folder and copying files..."
+    
+    # Create dashboard directory
+    DASHBOARD_DIR="/usr/local/hestia/web/list/dashboard"
+    mkdir -p "$DASHBOARD_DIR"
+    
+    # Copy dashboard index file
+    if [ -f "$SCRIPT_DIR/dashboard_index.php" ]; then
+        cp "$SCRIPT_DIR/dashboard_index.php" "$DASHBOARD_DIR/index.php"
+        chown hestiaweb:hestiaweb "$DASHBOARD_DIR/index.php"
+        chmod 644 "$DASHBOARD_DIR/index.php"
+        print_status "Dashboard index.php created"
+    else
+        print_error "Dashboard index file not found: $SCRIPT_DIR/dashboard_index.php"
+        exit 1
+    fi
+    
+    # Copy dashboard CSS theme
+    if [ -f "$SCRIPT_DIR/glass_color_theme.css" ]; then
+        cp "$SCRIPT_DIR/glass_color_theme.css" "$HESTIA_WEB_DIR/css/themes/custom/"
+        chown hestiaweb:hestiaweb "$HESTIA_WEB_DIR/css/themes/custom/glass_color_theme.css"
+        chmod 644 "$HESTIA_WEB_DIR/css/themes/custom/glass_color_theme.css"
+        print_status "Dashboard CSS theme copied"
+    else
+        print_error "Dashboard CSS theme not found: $SCRIPT_DIR/glass_color_theme.css"
+        exit 1
+    fi
+    
+    # Set proper permissions for dashboard directory
+    chown -R hestiaweb:hestiaweb "$DASHBOARD_DIR"
+    chmod -R 755 "$DASHBOARD_DIR"
+    
+    print_status "Dashboard setup completed"
 }
 
 # Function to copy plugin files
@@ -109,16 +217,26 @@ run_plugin_install() {
     fi
 }
 
-# Function to create CLI command symlink
+# Function to create CLI command wrapper script
 create_cli_command() {
     print_status "Setting up CLI command..."
     
-    # Create symlink for easy CLI access
-    if [ ! -L "/usr/local/bin/hestia-theme" ]; then
-        ln -s "$PLUGIN_DIR/hestia_theme_manager.php" "/usr/local/bin/hestia-theme"
-        chmod +x "/usr/local/bin/hestia-theme"
-        print_status "CLI command 'hestia-theme' created"
+    # Remove existing symlink if it exists
+    if [ -L "/usr/local/bin/hestia-theme" ]; then
+        rm -f "/usr/local/bin/hestia-theme"
+        print_status "Removed existing CLI symlink"
     fi
+    
+    # Create a proper wrapper script instead of symlink
+    cat > "/usr/local/bin/hestia-theme" << 'EOF'
+#!/bin/bash
+php /usr/local/hestia/plugins/theme-manager/hestia_theme_manager.php "$@"
+EOF
+    
+    # Make the wrapper script executable
+    chmod +x "/usr/local/bin/hestia-theme"
+    
+    print_status "CLI command 'hestia-theme' created as wrapper script"
 }
 
 # Function to create example theme structure
@@ -226,14 +344,23 @@ show_summary() {
     print_status "CLI command: hestia-theme [install|uninstall|apply|list|current]"
     echo
     print_status "Theme directory: $THEME_DIR"
+    print_status "Dashboard directory: /usr/local/hestia/web/list/dashboard"
     print_status "Backup directory: $PLUGIN_DIR/backups"
     print_status "Log directory: $PLUGIN_DIR/logs"
+    echo
+    print_status "Patch files applied:"
+    echo "  ✓ list/index.php - Modified with dashboard integration"
+    echo "  ✓ inc/main.php - Updated with custom functionality"  
+    echo "  ✓ login/index.php - Enhanced login page"
+    echo "  ✓ Dashboard created at /list/dashboard/"
+    echo "  ✓ Glass color theme installed"
     echo
     print_warning "Remember to:"
     echo "  1. Place your custom themes in: $THEME_DIR/"
     echo "  2. Test themes in a development environment first"
     echo "  3. Keep backups of your custom themes"
     echo "  4. Check logs if you encounter any issues"
+    echo "  5. Original files are backed up and can be restored via uninstall"
     echo
     print_status "Installation completed successfully!"
 }
@@ -269,6 +396,53 @@ backup_existing_plugin() {
     fi
 }
 
+# Function to verify patch files exist
+verify_patch_files() {
+    print_status "Verifying patch files..."
+    
+    local missing_files=0
+    
+    # Check for patch files
+    declare -a REQUIRED_PATCH_FILES=(
+        "$SCRIPT_DIR/patch_files/list_index.php"
+        "$SCRIPT_DIR/patch_files/main.php"
+        "$SCRIPT_DIR/patch_files/login_index.php"
+        "$SCRIPT_DIR/dashboard_index.php"
+        "$SCRIPT_DIR/glass_color_theme.css"
+    )
+    
+    for file in "${REQUIRED_PATCH_FILES[@]}"; do
+        if [ ! -f "$file" ]; then
+            print_error "Required file not found: $file"
+            missing_files=$((missing_files + 1))
+        fi
+    done
+    
+    # Check for patch_files directory
+    if [ ! -d "$SCRIPT_DIR/patch_files" ]; then
+        print_error "patch_files directory not found: $SCRIPT_DIR/patch_files"
+        missing_files=$((missing_files + 1))
+    fi
+    
+    if [ $missing_files -gt 0 ]; then
+        print_error "Missing $missing_files required file(s). Installation cannot continue."
+        echo
+        print_status "Required file structure:"
+        echo "  $(dirname $SCRIPT_DIR)/"
+        echo "  ├── install.sh"
+        echo "  ├── patch_files/"
+        echo "  │   ├── list_index.php"
+        echo "  │   ├── main.php"
+        echo "  │   └── login_index.php"
+        echo "  ├── dashboard_index.php"
+        echo "  ├── glass_color_theme.css"
+        echo "  └── hestia_theme_manager.php"
+        exit 1
+    fi
+    
+    print_status "All required patch files found"
+}
+
 # Main installation function
 main() {
     echo "======================================"
@@ -281,11 +455,14 @@ main() {
     check_root
     check_requirements
     check_hestia
+    verify_patch_files
     backup_existing_plugin
     create_directories
+    backup_original_files
+    apply_patch_files
+    create_dashboard
     copy_plugin_files
     run_plugin_install
-    create_web_interface
     create_cli_command
     create_example_theme
     setup_logrotate
@@ -307,6 +484,14 @@ case "${1:-install}" in
         echo "Commands:"
         echo "  install    Install the theme manager plugin (default)"
         echo "  help       Show this help message"
+        echo
+        echo "Required Files:"
+        echo "  patch_files/list_index.php    - Dashboard-enabled list page"
+        echo "  patch_files/main.php          - Modified main include"  
+        echo "  patch_files/login_index.php   - Enhanced login page"
+        echo "  dashboard_index.php           - Dashboard page"
+        echo "  glass_color_theme.css         - Dashboard theme"
+        echo "  hestia_theme_manager.php      - Main plugin file"
         echo
         ;;
     *)
