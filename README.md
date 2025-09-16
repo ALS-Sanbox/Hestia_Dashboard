@@ -2,14 +2,27 @@
 This new update changes the installiation precedures to be more automated than before. The only thing that is currenlty still manual is the css file that handles colors.
 When you create a theme you still at the moment have to create css themes for the different colors you want supported under the normal css/themes/custom folder and then in the theme.json file use the same name to set the default css theme you want used.
 
-## **Installation Instructions:**
+# **Installation Instructions:**
 1. Download and extract the Theme_Manager folder
 2. Make install and uninstall scripts runable
-   ```bash chmod +x install.sh``` and ```bash chmod +x uninstall.sh```
-3. Run ```bash ./install.sh```
+   ```bash
+   sudo chmod +x install.sh
+   ```
+   and
+   
+   ```bash
+   sudo hmod +x uninstall.sh
+   ```
+   
+4. Run
+   ```bash
+   sudo ./install.sh
+   ```
 
 # To uninstall just run 
-```bash ./uninstall.sh```
+```bash 
+sudo ./uninstall.sh
+```
 
 ## **Theme Creation:**
 1. Make a copy of the glass theme
@@ -67,3 +80,7 @@ Theme_Manager/
 ├── hestia_theme_manager.php
 └── themes/ (optional)
 ```
+
+## **WIP**
+1. Add in the ability to change the dashboard(skin) via GUI
+2. Add in the ability to add themes through GUI
