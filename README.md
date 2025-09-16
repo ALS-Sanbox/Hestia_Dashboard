@@ -2,6 +2,20 @@
 This new update changes the installiation precedures to be more automated than before. The only thing that is currenlty still manual is the css file that handles colors.
 When you create a theme you still at the moment have to create css themes for the different colors you want supported under the normal css/themes/custom folder and then in the theme.json file use the same name to set the default css theme you want used.
 
+## **Installation Instructions:**
+1. Download and extract the Theme_Manager folder
+2. Make install and uninstall scripts runable
+   ```bash chmod +x install.sh``` and ```bash chmod +x uninstall.sh```
+3. Run ```bash ./install.sh```
+
+# To uninstall just run 
+```bash ./uninstall.sh```
+
+## **Theme Creation:**
+1. Make a copy of the glass theme
+2. Make changes as desired
+3. *Important* I seperated out the css into two files the one in the theme folder controls everything but the color settings. I create a seperate css file and place it in the ```/usr/local/hestia/css/themes/custom``` folder and use that file name in the theme.json file to load the color settings. THis is done to allow for different color themes.
+   
 ## **Installation Script Features:**
 
 1. Patch File Handling
