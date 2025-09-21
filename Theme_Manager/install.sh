@@ -1,7 +1,7 @@
 #!/bin/bash
 
 # Hestia Theme Manager Installation Script
-# Version: 2.0.0
+# Version: 2.0.1 - CLI Only (No Web Interface)
 
 set -e
 
@@ -249,11 +249,12 @@ create_example_theme() {
     mkdir -p "$EXAMPLE_THEME_DIR/pages/login"
     
     # Create a simple example theme info file
-    cat > "$EXAMPLE_THEME_DIR/theme_info.json" << 'EOF'
+    cat > "$EXAMPLE_THEME_DIR/theme.json" << 'EOF'
 {
     "name": "Example Dark Theme",
     "version": "1.0.0",
     "description": "An example dark theme for Hestia Control Panel",
+    "css_theme": "dark",
     "author": "Theme Manager Plugin",
     "created": "2024-01-01"
 }
@@ -274,6 +275,7 @@ This directory contains custom themes for the Hestia Control Panel.
 
 ```
 my-awesome-theme/
+├── theme.json (recommended config file)
 ├── footer.php
 ├── header.php
 ├── includes/
@@ -290,6 +292,20 @@ my-awesome-theme/
     └── ... (other login pages)
 ```
 
+## Theme Configuration (theme.json)
+
+Create a theme.json file in your theme directory to specify metadata:
+
+```json
+{
+    "name": "My Custom Theme",
+    "description": "A beautiful custom theme for Hestia",
+    "version": "1.0.0",
+    "css_theme": "dark",
+    "author": "Your Name"
+}
+```
+
 ## Theme Structure Requirements
 
 - Your theme must maintain the same file structure as the original Hestia templates
@@ -297,17 +313,33 @@ my-awesome-theme/
 - Include all required files or the theme switcher will skip missing files
 - Test thoroughly before deploying to production
 
-## Installing Themes
+## Managing Themes (CLI Only)
 
-1. Place your theme directory in `/usr/local/hestia/plugins/theme-manager/themes/`
-2. Use the web interface at `/theme-manager.php` or CLI command `hestia-theme apply theme-name`
-3. The plugin will automatically backup current files before applying your theme
+Use the CLI commands to manage themes:
+
+```bash
+# List available themes
+hestia-theme list
+hestia-theme list-css
+
+# Show current theme status
+hestia-theme current
+hestia-theme status
+
+# Apply themes
+hestia-theme apply theme-name
+hestia-theme apply theme-name css-theme-name
+hestia-theme css css-theme-name
+
+# Debug information
+hestia-theme debug
+```
 
 ## Backup and Restore
 
 - Original files are automatically backed up during plugin installation
 - Current theme is backed up before applying a new theme
-- You can always restore the original Hestia theme
+- You can always restore the original Hestia theme using `hestia-theme apply original`
 EOF
     
     print_status "Example theme structure created"
@@ -337,11 +369,11 @@ show_summary() {
     echo
     echo "======================================"
     echo "  Hestia Theme Manager Installation"
-    echo "           COMPLETED"
+    echo "        COMPLETED (CLI Only)"
     echo "======================================"
     echo
     print_status "Installation directory: $PLUGIN_DIR"
-    print_status "CLI command: hestia-theme [install|uninstall|apply|list|current]"
+    print_status "CLI command: hestia-theme [install|uninstall|apply|list|current|status|debug]"
     echo
     print_status "Theme directory: $THEME_DIR"
     print_status "Dashboard directory: /usr/local/hestia/web/list/dashboard"
@@ -355,14 +387,30 @@ show_summary() {
     echo "  ✓ Dashboard created at /list/dashboard/"
     echo "  ✓ Glass color theme installed"
     echo
+    print_status "CLI Commands Available:"
+    echo "  hestia-theme list              - List available template themes"
+    echo "  hestia-theme list-css          - List available CSS themes"
+    echo "  hestia-theme current           - Show current active themes"
+    echo "  hestia-theme status            - Show detailed system status"
+    echo "  hestia-theme apply <theme>     - Apply template theme"
+    echo "  hestia-theme apply <theme> <css> - Apply template + CSS theme"
+    echo "  hestia-theme css <theme>       - Apply only CSS theme"
+    echo "  hestia-theme debug             - Show debug information"
+    echo
     print_warning "Remember to:"
     echo "  1. Place your custom themes in: $THEME_DIR/"
-    echo "  2. Test themes in a development environment first"
-    echo "  3. Keep backups of your custom themes"
-    echo "  4. Check logs if you encounter any issues"
-    echo "  5. Original files are backed up and can be restored via uninstall"
+    echo "  2. Create theme.json config files for better theme management"
+    echo "  3. Test themes in a development environment first"
+    echo "  4. Keep backups of your custom themes"
+    echo "  5. Check logs if you encounter any issues: $PLUGIN_DIR/logs/"
+    echo "  6. Original files are backed up and can be restored via uninstall"
     echo
     print_status "Installation completed successfully!"
+    echo
+    print_status "Next Steps:"
+    echo "  • Run 'hestia-theme status' to verify installation"
+    echo "  • Run 'hestia-theme debug' if you encounter issues"
+    echo "  • Check $THEME_DIR/README.md for theme development guide"
 }
 
 # Function to check system requirements
@@ -447,7 +495,7 @@ verify_patch_files() {
 main() {
     echo "======================================"
     echo "  Hestia Theme Manager Installer"
-    echo "           Version 1.0.0"
+    echo "      Version 2.0.1 (CLI Only)"
     echo "======================================"
     echo
     
@@ -477,13 +525,15 @@ case "${1:-install}" in
         main
         ;;
     "help"|"-h"|"--help")
-        echo "Hestia Theme Manager Installer"
+        echo "Hestia Theme Manager Installer (CLI Only Version)"
         echo
         echo "Usage: $0 [install|help]"
         echo
         echo "Commands:"
         echo "  install    Install the theme manager plugin (default)"
         echo "  help       Show this help message"
+        echo
+        echo "This version installs only the CLI interface. No web interface is created."
         echo
         echo "Required Files:"
         echo "  patch_files/list_index.php    - Dashboard-enabled list page"
@@ -492,6 +542,8 @@ case "${1:-install}" in
         echo "  dashboard_index.php           - Dashboard page"
         echo "  glass_color_theme.css         - Dashboard theme"
         echo "  hestia_theme_manager.php      - Main plugin file"
+        echo
+        echo "After installation, use the 'hestia-theme' CLI command to manage themes."
         echo
         ;;
     *)
