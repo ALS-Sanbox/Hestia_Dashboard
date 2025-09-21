@@ -1,62 +1,102 @@
-## **UPDATE 9-15-2025**
-This new update changes the installiation precedures to be more automated than before. The only thing that is currenlty still manual is the css file that handles colors.
-When you create a theme you still at the moment have to create css themes for the different colors you want supported under the normal css/themes/custom folder and then in the theme.json file use the same name to set the default css theme you want used.
+# **Installation Instructions**
 
-# **Installation Instructions:**
 1. Download and extract the Theme_Manager folder
-2. Run
+
+   **ZIP version:**
+   ```bash
+   wget https://github.com/ALS-Sanbox/Hestia_Dashboard/releases/download/v2.0.0/Theme_Manager.zip
+   unzip Theme_Manager.zip
+   ```
+   
+   **TAR.GZ version:**
+   ```bash
+   wget https://github.com/ALS-Sanbox/Hestia_Dashboard/releases/download/v2.0.0/Theme_Manager.tar.gz
+   tar -xzf Theme_Manager.tar.gz
+   ```
+
+2. Enter the extracted folder:
+   ```bash
+   cd Theme_Manager
+   ```
+
+3. Run the installation script:
    ```bash
    bash install.sh
    ```
 
-# To uninstall just run 
+4. Set Glass Theme as active:
+   ```bash
+   hestia-theme apply glass_theme
+   ```
+
+## **What's Next?**
+
+After installation, you can run `hestia-theme status` to see the current theme status and `hestia-theme list` to view currently available themes.
+
+### Usage
+```bash
+php hestia_theme_manager.php [install|uninstall|apply|css|list|list-css|current|status]
+```
+
+### Commands:
+- `install` - Install the theme manager
+- `uninstall` - Uninstall and restore original
+- `apply <theme> [css]` - Apply template theme with optional CSS theme
+- `css <theme>` - Apply only CSS theme
+- `list` - List available template themes
+- `list-css` - List available CSS themes
+- `current` - Show current active themes
+- `status` - Show detailed system status
+
+### To Uninstall
 ```bash 
 bash uninstall.sh
 ```
 
-## **Theme Creation:**
+## **Theme Creation**
+
 1. Make a copy of the glass theme
 2. Make changes as desired
-3. *Important* I seperated out the css into two files the one in the theme folder controls everything but the color settings. I create a seperate css file and place it in the ```/usr/local/hestia/css/themes/custom``` folder and use that file name in the theme.json file to load the color settings. THis is done to allow for different color themes.
-   
-## **Installation Script Features:**
+3. **Important:** I separated the CSS into two files. The one in the theme folder controls everything except the color settings. I created a separate CSS file and placed it in the `/usr/local/hestia/css/themes/custom` folder and use that filename in the theme.json file to load the color settings. This is done to allow for different color themes.
 
-1. Patch File Handling
-Creates backups of original Hestia files before overwriting them
-Apply Patches:
-patch_files/list_index.php → ```/usr/local/hestia/web/list/index.php```
-patch_files/main.php → ```/usr/local/hestia/web/inc/main.php```
-patch_files/login_index.php → ```/usr/local/hestia/web/login/index.php```
+## **Installation Script Features**
 
-2. Dashboard Setup
-Creates ```/usr/local/hestia/web/list/dashboard/```directory
-Copies dashboard_index.php to ```/usr/local/hestia/web/list/dashboard/index.php```
-Copies glass_color_theme.css to ```/usr/local/hestia/web/css/themes/custom/```
+### 1. Patch File Handling
+- Creates backups of original Hestia files before overwriting them
+- Applies patches:
+  - `patch_files/list_index.php` → `/usr/local/hestia/web/list/index.php`
+  - `patch_files/main.php` → `/usr/local/hestia/web/inc/main.php`
+  - `patch_files/login_index.php` → `/usr/local/hestia/web/login/index.php`
 
-3. File Verification
-Added verify_patch_files() function to ensure all required files exist before installation
-Checks for the required directory structure
+### 2. Dashboard Setup
+- Creates `/usr/local/hestia/web/list/dashboard/` directory
+- Copies `dashboard_index.php` to `/usr/local/hestia/web/list/dashboard/index.php`
+- Copies `glass_color_theme.css` to `/usr/local/hestia/web/css/themes/custom/`
 
-4. Enhanced Backup System
-Creates $PLUGIN_DIR/backups/original-files/ for storing original patched files
-Maintains separate backups for theme files and patched system files
+### 3. File Verification
+- Added `verify_patch_files()` function to ensure all required files exist before installation
+- Checks for the required directory structure
 
-## **Uninstallation Script Features:**
+### 4. Enhanced Backup System
+- Creates `$PLUGIN_DIR/backups/original-files/` for storing original patched files
+- Maintains separate backups for theme files and patched system files
 
-1. Original File Restoration
-restore_original_patched_files() function restores the backed-up original files
-Properly restores file permissions and ownership
+## **Uninstallation Script Features**
 
-2. Dashboard Cleanup
-Removes ```/usr/local/hestia/web/list/dashboard/``` directory
-Removes custom CSS theme files
-Cleans up empty directories
+### 1. Original File Restoration
+- `restore_original_patched_files()` function restores the backed-up original files
+- Properly restores file permissions and ownership
 
-3. Comprehensive Restoration
-Restores both theme files and patched system files
-Maintains the existing theme restoration functionality
+### 2. Dashboard Cleanup
+- Removes `/usr/local/hestia/web/list/dashboard/` directory
+- Removes custom CSS theme files
+- Cleans up empty directories
 
-File Structure:
+### 3. Comprehensive Restoration
+- Restores both theme files and patched system files
+- Maintains the existing theme restoration functionality
+
+## **File Structure**
 ```
 Theme_Manager/
 ├── install.sh (modified)
@@ -71,6 +111,7 @@ Theme_Manager/
 └── themes/ (optional)
 ```
 
-## **WIP**
-1. Add in the ability to change the dashboard(skin) via GUI
-2. Add in the ability to add themes through GUI
+## **Work In Progress (WIP)**
+
+1. Add the ability to change the dashboard (skin) via GUI
+2. Add the ability to add themes through GUI
