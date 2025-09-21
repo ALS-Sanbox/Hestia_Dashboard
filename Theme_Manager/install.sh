@@ -85,6 +85,7 @@ backup_original_files() {
     
     # Define files to backup with their source and destination paths
     declare -A FILES_TO_BACKUP=(
+        ["/usr/local/hestia/web/index.php"]="$BACKUP_DIR/original-files/web_index.php"
         ["/usr/local/hestia/web/list/index.php"]="$BACKUP_DIR/original-files/list_index.php"
         ["/usr/local/hestia/web/inc/main.php"]="$BACKUP_DIR/original-files/main.php"
         ["/usr/local/hestia/web/login/index.php"]="$BACKUP_DIR/original-files/login_index.php"
@@ -114,6 +115,7 @@ apply_patch_files() {
     
     # Define patch files mapping: patch_file -> target_file
     declare -A PATCH_FILES=(
+        ["$SCRIPT_DIR/patch_files/web_index.php"]="/usr/local/hestia/web/index.php"
         ["$SCRIPT_DIR/patch_files/list_index.php"]="/usr/local/hestia/web/list/index.php"
         ["$SCRIPT_DIR/patch_files/main.php"]="/usr/local/hestia/web/inc/main.php"
         ["$SCRIPT_DIR/patch_files/login_index.php"]="/usr/local/hestia/web/login/index.php"
