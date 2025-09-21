@@ -1,3 +1,11 @@
+# This nightly build 9/21/2025 V2.0.1
+Changes Made:
+1. Main Plugin File (hestia_theme_manager.php)
+
+Removed the entire createThemeInterface() method that generated the HTML web interface
+Updated the install() method to skip creating the web interface
+The plugin now operates purely through CLI commands
+
 # **Installation Instructions**
 
 1. Download and extract the Theme_Manager folder
