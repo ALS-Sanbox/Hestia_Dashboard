@@ -4,24 +4,14 @@ When you create a theme you still at the moment have to create css themes for th
 
 # **Installation Instructions:**
 1. Download and extract the Theme_Manager folder
-2. Make install and uninstall scripts runable
+2. Run
    ```bash
-   sudo chmod +x install.sh
-   ```
-   and
-   
-   ```bash
-   sudo hmod +x uninstall.sh
-   ```
-   
-4. Run
-   ```bash
-   sudo ./install.sh
+   bash install.sh
    ```
 
 # To uninstall just run 
 ```bash 
-sudo ./uninstall.sh
+bash uninstall.sh
 ```
 
 ## **Theme Creation:**
