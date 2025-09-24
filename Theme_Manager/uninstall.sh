@@ -1,7 +1,7 @@
 #!/bin/bash
 
 # Hestia Theme Manager Uninstallation Script
-# Version: 2.0.1 - CLI Only (No Web Interface)
+# Version: 2.0.2
 
 set -e
 
@@ -57,7 +57,7 @@ confirm_uninstall() {
     echo "  - Remove custom CSS themes"
     echo "  - Remove all custom themes"
     echo "  - Delete plugin files and configurations"
-    echo "  - Remove CLI command"
+    echo "  - Remove web interface and CLI command"
     echo
     
     read -p "Are you sure you want to uninstall the Theme Manager plugin? (y/N): " -n 1 -r
@@ -71,12 +71,12 @@ confirm_uninstall() {
 
 # Function to backup themes before uninstall
 backup_themes() {
-    if [ -d "$HESTIA_WEB_DIR/themes" ]; then
+    if [ -d "$PLUGIN_DIR/themes" ]; then
         print_status "Backing up custom themes..."
         
         BACKUP_DIR="/tmp/hestia-themes-backup-$(date +%Y%m%d-%H%M%S)"
         mkdir -p "$BACKUP_DIR"
-        cp -r "$HESTIA_WEB_DIR/themes" "$BACKUP_DIR/"
+        cp -r "$PLUGIN_DIR/themes" "$BACKUP_DIR/"
         
         print_status "Themes backed up to: $BACKUP_DIR"
         echo "  You can restore these themes after reinstalling the plugin"
@@ -144,13 +144,6 @@ remove_dashboard() {
         rmdir "$CUSTOM_THEMES_DIR"
         print_status "Empty custom themes directory removed"
     fi
-    
-    # Remove themes directory
-    THEMES_DIR="/usr/local/hestia/web/themes"
-    if [ -d "$THEMES_DIR" ]; then
-        rm -rf "$THEMES_DIR"
-        print_status "Themes directory removed"
-    fi
 }
 
 # Function to restore original theme
@@ -176,29 +169,60 @@ restore_original_theme() {
 
 # Function to manually restore original theme
 manual_restore_original() {
-    BACKUP_DIR_ORIG="$PLUGIN_DIR/backups/original-templates"
+    BACKUP_DIR_ORIG="$PLUGIN_DIR/backups/original"
     
     if [ -d "$BACKUP_DIR_ORIG" ]; then
-        print_status "Manually restoring original templates..."
+        print_status "Manually restoring original files..."
         
-        # Remove current templates (symlink or directory)
-        if [ -L "/usr/local/hestia/web/templates" ]; then
-            unlink "/usr/local/hestia/web/templates"
-            print_status "Removed templates symlink"
-        elif [ -d "/usr/local/hestia/web/templates" ]; then
-            rm -rf "/usr/local/hestia/web/templates"
-            print_status "Removed templates directory"
+        # Define the template files to restore
+        declare -a TEMPLATE_FILES=(
+            "footer.php"
+            "header.php"
+            "includes/app-footer.php"
+            "includes/extra-ns-fields.php"
+            "includes/login-footer.php"
+            "includes/title.php"
+            "includes/css.php"
+            "includes/js.php"
+            "includes/panel.php"
+            "includes/email-settings-panel.php"
+            "includes/jump-to-top-link.php"
+            "includes/password-requirements.php"
+        )
+        
+        # Restore template files
+        for file in "${TEMPLATE_FILES[@]}"; do
+            if [ -f "$BACKUP_DIR_ORIG/$file" ]; then
+                cp "$BACKUP_DIR_ORIG/$file" "/usr/local/hestia/web/templates/$file"
+                chmod 644 "/usr/local/hestia/web/templates/$file"
+            fi
+        done
+        
+        # Restore page files
+        if [ -d "$BACKUP_DIR_ORIG/pages" ]; then
+            find "$BACKUP_DIR_ORIG/pages" -name "*.php" -type f | while read -r file; do
+                rel_path=${file#$BACKUP_DIR_ORIG/}
+                target="/usr/local/hestia/web/templates/$rel_path"
+                cp "$file" "$target"
+                chmod 644 "$target"
+            done
         fi
-        
-        # Restore original templates
-        cp -r "$BACKUP_DIR_ORIG" "/usr/local/hestia/web/templates"
-        chown -R hestiaweb:hestiaweb "/usr/local/hestia/web/templates"
-        chmod -R 644 "/usr/local/hestia/web/templates"
-        find "/usr/local/hestia/web/templates" -type d -exec chmod 755 {} \;
         
         print_status "Manual restore completed"
     else
-        print_warning "Original backup not found at $BACKUP_DIR_ORIG - manual restoration may be required"
+        print_warning "Original backup not found - original files may not be restored"
+    fi
+}
+
+# Function to remove web interface (placeholder for future implementation)
+remove_web_interface() {
+    print_status "Removing web interface..."
+    
+    # Remove any web interface files that might have been created
+    WEB_INTERFACE_FILE="/usr/local/hestia/web/theme-manager.php"
+    if [ -f "$WEB_INTERFACE_FILE" ]; then
+        rm "$WEB_INTERFACE_FILE"
+        print_status "Web interface file removed"
     fi
 }
 
@@ -206,7 +230,7 @@ manual_restore_original() {
 remove_cli_command() {
     print_status "Removing CLI command..."
     
-    if [ -f "/usr/local/bin/hestia-theme" ]; then
+    if [ -L "/usr/local/bin/hestia-theme" ]; then
         rm "/usr/local/bin/hestia-theme"
         print_status "CLI command removed"
     fi
@@ -254,7 +278,7 @@ show_summary() {
     echo
     echo "======================================"
     echo "  Hestia Theme Manager Uninstallation"
-    echo "        COMPLETED (CLI Version)"
+    echo "           COMPLETED"
     echo "======================================"
     echo
     print_status "✓ Original Hestia theme restored"
@@ -264,8 +288,8 @@ show_summary() {
     echo "    - login/index.php"
     print_status "✓ Dashboard folder removed"
     print_status "✓ Custom CSS themes removed"
-    print_status "✓ Custom themes directory removed"
     print_status "✓ Plugin files removed"
+    print_status "✓ Web interface removed"
     print_status "✓ CLI command removed"
     print_status "✓ Configuration files removed"
     echo
@@ -283,7 +307,6 @@ show_summary() {
     print_status "Theme Manager plugin has been completely uninstalled"
     echo
     print_status "Your Hestia Control Panel has been restored to its original state"
-    echo "No web interface was present to remove (CLI-only version)"
 }
 
 # Function to handle force uninstall
@@ -293,11 +316,12 @@ force_uninstall() {
     # Skip backup in force mode but still restore original files
     restore_original_patched_files
     remove_dashboard
+    remove_web_interface
     remove_cli_command
     remove_logrotate
     
     # Try to restore original theme if possible
-    if [ -d "$PLUGIN_DIR/backups/original-templates" ]; then
+    if [ -d "$PLUGIN_DIR/backups/original" ]; then
         manual_restore_original
     else
         print_warning "Original backup not found - manual theme restoration may be required"
@@ -313,7 +337,7 @@ force_uninstall() {
 main() {
     echo "======================================"
     echo "  Hestia Theme Manager Uninstaller"
-    echo "      Version 2.0.1 (CLI Only)"
+    echo "           Version 1.0.0"
     echo "======================================"
     echo
     
@@ -325,6 +349,7 @@ main() {
     restore_original_patched_files
     remove_dashboard
     restore_original_theme
+    remove_web_interface
     remove_cli_command
     remove_logrotate
     remove_plugin_directory
@@ -349,7 +374,7 @@ case "${1:-uninstall}" in
         fi
         ;;
     "help"|"-h"|"--help")
-        echo "Hestia Theme Manager Uninstaller (CLI Only Version)"
+        echo "Hestia Theme Manager Uninstaller"
         echo
         echo "Usage: $0 [uninstall|force|help]"
         echo
@@ -365,13 +390,9 @@ case "${1:-uninstall}" in
         echo "    • inc/main.php"
         echo "    • login/index.php"
         echo "  - Remove dashboard folder and custom CSS"
-        echo "  - Remove custom themes directory"
         echo "  - Backup custom themes to /tmp/"
         echo "  - Remove all plugin files and configurations"
-        echo "  - Clean up CLI command"
-        echo
-        echo "Note: This version only removes CLI interface components."
-        echo "No web interface cleanup is needed."
+        echo "  - Clean up web interface and CLI command"
         echo
         ;;
     *)
