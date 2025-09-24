@@ -1,0 +1,168 @@
+<div class="dashboard-container">
+
+    <!-- Page Title -->
+    <div class="page-title-container">
+        <h1 class="page-title">DASHBOARD</h1>
+        <div class="underline"></div>
+    </div>
+
+    <!-- 3x2 Grid -->
+    <div class="stats-grid">
+		<!-- Users (Total / Suspended) -->
+		<?php if ($_SESSION["user"] === "admin"): ?>
+		<div class="stats-card">
+			<div class="stats-card-header">
+				<i class="fas fa-users"></i>
+				<h2>Users</h2>
+			</div>
+			<div class="stats-card-content">
+				<?php
+				if ($_SESSION["user"] !== "admin" && $_SESSION["POLICY_SYSTEM_HIDE_ADMIN"] === "yes") {
+					$user_count = $panel[$user]["U_USERS"] - 1;
+				} else {
+					$user_count = $panel[$user]["U_USERS"];
+				}
+				$suspended_count = $panel[$user]["SUSPENDED_USERS"];
+				?>
+				<span class="stat-value"><?= $user_count ?> total / <?= $suspended_count ?> suspended</span>
+			</div>
+		</div>
+		<?php endif; ?>
+
+        <!-- Web Domains -->
+        <div class="stats-card">
+            <div class="stats-card-header">
+                <i class="fas fa-globe"></i>
+                <h2>Web Domains</h2>
+            </div>
+            <div class="stats-card-content">
+                <span class="stat-value">
+                    <?= $panel[$user]["U_WEB_DOMAINS"] ?> / 
+                    <?= $panel[$user]["WEB_DOMAINS"] === "unlimited" ? "∞" : $panel[$user]["WEB_DOMAINS"] ?>
+                </span>
+            </div>
+        </div>
+
+        <!-- Mail Accounts -->
+        <div class="stats-card">
+            <div class="stats-card-header">
+                <i class="fas fa-envelope"></i>
+                <h2>Mail Accounts</h2>
+            </div>
+            <div class="stats-card-content">
+                <span class="stat-value">
+                    <?= $panel[$user]["U_MAIL_ACCOUNTS"] ?> / 
+                    <?= $panel[$user]["MAIL_ACCOUNTS"] === "unlimited" || $panel[$user]["MAIL_DOMAINS"] === "unlimited"
+                        ? "∞"
+                        : $panel[$user]["MAIL_ACCOUNTS"] * $panel[$user]["MAIL_DOMAINS"] ?>
+                </span>
+            </div>
+        </div>
+
+        <!-- Databases -->
+        <div class="stats-card">
+            <div class="stats-card-header">
+                <i class="fas fa-database"></i>
+                <h2>Databases</h2>
+            </div>
+            <div class="stats-card-content">
+                <span class="stat-value">
+                    <?= $panel[$user]["U_DATABASES"] ?> / 
+                    <?= $panel[$user]["DATABASES"] === "unlimited" ? "∞" : $panel[$user]["DATABASES"] ?>
+                </span>
+            </div>
+        </div>
+
+        <!-- Cron Jobs -->
+        <div class="stats-card">
+            <div class="stats-card-header">
+                <i class="fas fa-clock"></i>
+                <h2>Cron Jobs</h2>
+            </div>
+            <div class="stats-card-content">
+                <span class="stat-value">
+                    <?= $panel[$user]["U_CRON_JOBS"] ?> / 
+                    <?= $panel[$user]["CRON_JOBS"] === "unlimited" ? "∞" : $panel[$user]["CRON_JOBS"] ?>
+                </span>
+            </div>
+        </div>
+
+        <!-- Placeholder (optional for disk, etc.) -->
+        <div class="stats-card">
+            <div class="stats-card-header">
+                <i class="fas fa-hdd"></i>
+                <h2>Disk Usage</h2>
+            </div>
+            <div class="stats-card-content">
+                <span class="stat-value"><?= humanize_usage_size($disk_used) ?> / <?= humanize_usage_size($disk_max) ?></span>
+            </div>
+        </div>
+    </div>
+</div>
+
+<style>
+.dashboard-container {
+    margin-left: 220px; /* sidebar width */
+    padding: 20px;
+    font-family: 'Segoe UI', sans-serif;
+}
+
+.page-title-container {
+    margin-bottom: 20px;
+}
+.page-title-container .page-title {
+    font-size: 2em;
+    margin-bottom: 5px;
+}
+.page-title-container .underline {
+    height: 4px;
+    width: 60px;
+    background: #007BFF;
+    border-radius: 2px;
+}
+
+/* Grid for 3x2 cards */
+.stats-grid {
+    display: grid;
+    grid-template-columns: repeat(3, 1fr);
+    grid-template-rows: repeat(2, auto);
+    gap: 20px;
+}
+
+/* Card styling */
+.stats-card {
+    background: #fff;
+    border-radius: 12px;
+    box-shadow: 0 4px 10px rgba(0,0,0,0.05);
+    transition: transform 0.2s ease;
+}
+.stats-card:hover {
+    transform: translateY(-5px);
+}
+
+/* Card header */
+.stats-card-header {
+    display: flex;
+    align-items: center;
+    padding: 15px 20px;
+    border-bottom: 1px solid #eee;
+    background: #f5f5f5;
+}
+.stats-card-header i {
+    font-size: 1.5em;
+    margin-right: 10px;
+    color: #007BFF;
+}
+.stats-card-header h2 {
+    font-size: 1.1em;
+    margin: 0;
+}
+
+/* Card content */
+.stats-card-content {
+    padding: 20px;
+    font-size: 1.2em;
+    font-weight: bold;
+    text-align: center;
+}
+</style>
