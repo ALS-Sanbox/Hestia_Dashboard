@@ -1,0 +1,10 @@
+V2.0.0
+  -first version to be released to the public
+v2.0.1
+  -removed the installer creating a theme manager page
+  -created a new panel link to an internal theme manager page
+v2.0.2
+  -Added new Dark glass theme
+  -fixed the mobile css for all themes
+  -updated the index file to pull the correct data for the dashboards
+  
