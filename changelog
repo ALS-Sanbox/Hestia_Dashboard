@@ -1,8 +1,9 @@
 V2.0.0
   -first version to be released to the public
-v2.0.1
-  -removed the installer creating a theme manager page
-  -created a new panel link to an internal theme manager page
+V2.0.1
+  -Removed the entire createThemeInterface() method that generated the HTML web interface
+  -Updated the install() method to skip creating the web interface
+  -The plugin now operates purely through CLI commands
 v2.0.2
   -Added new Dark glass theme
   -fixed the mobile css for all themes
