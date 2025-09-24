@@ -3,148 +3,157 @@
 
 <!-- Main Dashboard Content -->
 <div class="hestia-dashboard-container">
-<!---------- Start ------------------->		
-			<!-- Notifications / Menu wrapper -->
-			<div>
+<div id="token" token="<?= $_SESSION["token"] ?>"></div>
 
-				<!-- Notifications -->
-				<?php
-    $impersonatingAdmin = $_SESSION["userContext"] === "admin" && ($_SESSION["look"] !== "" && $user == "admin");
+<!---------- Start ------------------->		
+<!-- Notifications / Menu wrapper -->
+<div>
+    <!-- Notifications -->
+    <?php
+    $impersonatingAdmin = $_SESSION["userContext"] === "admin" 
+        && ($_SESSION["look"] !== "" && $user == "admin");
     // Do not show notifications panel when impersonating 'admin' user
-    if (!$impersonatingAdmin) { ?>
-					<div x-data="notifications" class="top-bar-notifications">
-						<button
-							x-on:click="toggle()"
-							x-bind:class="open && 'active'"
-							class="top-bar-menu-link"
-							type="button"
-							title="<?= _("Notifications") ?>"
-						>
-							<i
-								x-bind:class="{
-									'animate__animated animate__swing icon-orange': (!initialized && <?= $panel[$user]["NOTIFICATIONS"] == "yes" ? "true" : "false" ?>) || notifications.length != 0,
-									'fas fa-bell': true
-								}"
-							></i>
-							<span class="u-hidden"><?= _("Notifications") ?></span>
-						</button>
-						<div
-							x-cloak
-							x-show="open"
-							x-on:click.outside="open = false"
-							class="top-bar-notifications-panel"
-						>
-							<template x-if="!initialized">
-								<div class="top-bar-notifications-empty">
-									<i class="fas fa-circle-notch fa-spin icon-dim"></i>
-									<p><?= _("Loading...") ?></p>
-								</div>
-							</template>
-							<template x-if="initialized && notifications.length == 0">
-								<div class="top-bar-notifications-empty">
-									<i class="fas fa-bell-slash icon-dim"></i>
-									<p><?= _("No notifications") ?></p>
-								</div>
-							</template>
-							<template x-if="initialized && notifications.length > 0">
-								<ul>
-									<template x-for="notification in notifications" :key="notification.ID">
-										<li
-											x-bind:id="`notification-${notification.ID}`"
-											x-bind:class="notification.ACK && 'unseen'"
-											class="top-bar-notification-item"
-											x-data="{ open: true }"
-											x-show="open"
-											x-collapse
-										>
-											<div class="top-bar-notification-inner">
-												<div class="top-bar-notification-header">
-													<p x-text="notification.TOPIC" class="top-bar-notification-title"></p>
-													<button
-														x-on:click="open = false; setTimeout(() => remove(notification.ID), 300);"
-														type="button"
-														class="top-bar-notification-delete"
-														title="<?= _("Delete notification") ?>"
-													>
-														<i class="fas fa-xmark"></i>
-														<span class="u-hidden-visually"><?= _("Delete notification") ?></span>
-													</button>
-												</div>
-												<div class="top-bar-notification-content" x-html="notification.NOTICE"></div>
-												<p class="top-bar-notification-timestamp">
-													<time
-														:datetime="`${notification.TIMESTAMP_ISO}`"
-														x-bind:title="`${notification.TIMESTAMP_TITLE}`"
-														x-text="`${notification.TIMESTAMP_TEXT}`"
-													></time>
-												</p>
-											</div>
-										</li>
-									</template>
-								</ul>
-							</template>
-							<template x-if="initialized && notifications.length > 2">
-								<button
-									x-on:click="removeAll()"
-									type="button"
-									class="top-bar-notifications-delete-all"
-								>
-									<i class="fas fa-check"></i>
-									<?= _("Delete all notifications") ?>
-								</button>
-							</template>
-						</div>
-					</div>
-				<?php } ?>
-			</div>
-		
+    if (!$impersonatingAdmin): ?>
+        <div x-data="notifications" class="top-bar-notifications">
+            <button
+                x-on:click="toggle()"
+                x-bind:class="open && 'active'"
+                class="top-bar-menu-link"
+                type="button"
+                title="<?= _("Notifications") ?>"
+            >
+                <i
+                    x-bind:class="{
+                        'animate__animated animate__swing icon-orange': (!initialized && <?= $panel[$user]["NOTIFICATIONS"] == "yes" ? "true" : "false" ?>) || notifications.length != 0,
+                        'fas fa-bell': true
+                    }"
+                ></i>
+                <span class="u-hidden"><?= _("Notifications") ?></span>
+            </button>
+
+            <div
+                x-cloak
+                x-show="open"
+                x-on:click.outside="open = false"
+                class="top-bar-notifications-panel"
+            >
+                <!-- Loading -->
+                <template x-if="!initialized">
+                    <div class="top-bar-notifications-empty">
+                        <i class="fas fa-circle-notch fa-spin icon-dim"></i>
+                        <p><?= _("Loading...") ?></p>
+                    </div>
+                </template>
+
+                <!-- No notifications -->
+                <template x-if="initialized && notifications.length == 0">
+                    <div class="top-bar-notifications-empty">
+                        <i class="fas fa-bell-slash icon-dim"></i>
+                        <p><?= _("No notifications") ?></p>
+                    </div>
+                </template>
+
+                <!-- Notifications list -->
+                <template x-if="initialized && notifications.length > 0">
+                    <ul>
+                        <template x-for="notification in notifications" :key="notification.ID">
+                            <li
+                                x-bind:id="`notification-${notification.ID}`"
+                                x-bind:class="notification.ACK && 'unseen'"
+                                class="top-bar-notification-item"
+                                x-data="{ open: true }"
+                                x-show="open"
+                                x-collapse
+                            >
+                                <div class="top-bar-notification-inner">
+                                    <div class="top-bar-notification-header">
+                                        <p x-text="notification.TOPIC" class="top-bar-notification-title"></p>
+                                        <button
+                                            x-on:click="open = false; setTimeout(() => remove(notification.ID), 300);"
+                                            type="button"
+                                            class="top-bar-notification-delete"
+                                            title="<?= _("Delete notification") ?>"
+                                        >
+                                            <i class="fas fa-xmark"></i>
+                                            <span class="u-hidden-visually"><?= _("Delete notification") ?></span>
+                                        </button>
+                                    </div>
+                                    <div class="top-bar-notification-content" x-html="notification.NOTICE"></div>
+                                    <p class="top-bar-notification-timestamp">
+                                        <time
+                                            :datetime="`${notification.TIMESTAMP_ISO}`"
+                                            x-bind:title="`${notification.TIMESTAMP_TITLE}`"
+                                            x-text="`${notification.TIMESTAMP_TEXT}`"
+                                        ></time>
+                                    </p>
+                                </div>
+                            </li>
+                        </template>
+                    </ul>
+                </template>
+
+                <!-- Delete all -->
+                <template x-if="initialized && notifications.length > 2">
+                    <button
+                        x-on:click="removeAll()"
+                        type="button"
+                        class="top-bar-notifications-delete-all"
+                    >
+                        <i class="fas fa-check"></i>
+                        <?= _("Delete all notifications") ?>
+                    </button>
+                </template>
+            </div>
+        </div>
+    <?php endif; ?>
+</div>
 <!--------- END ---------------->	
     <!-- Page Title -->
     <div class="page-title-container">
         <h1 class="page-title"><?= _("Dashboard") ?></h1>
-        <p class="page-subtitle"><?= _("Welcome back! Here's what's happening with your server.") ?></p>
+        <p class="page-subtitle"><?= _("Welcome back! Here's what's happening with ") . htmlspecialchars($sysinfo['HOSTNAME'] ?? 'N/A') ?></p>
         <div class="underline"></div>
     </div>
 
-    <!-- Quick Stats Row -->
-    <div class="quick-stats">
-        <div class="quick-stat-item">
-            <div class="quick-stat-icon uptime">
-                <i class="fas fa-arrow-up"></i>
-            </div>
-            <div class="quick-stat-info">
-                <span class="quick-stat-value">99.9%</span>
-                <span class="quick-stat-label"><?= _("Uptime") ?></span>
-            </div>
-        </div>
-        <div class="quick-stat-item">
-            <div class="quick-stat-icon time">
-                <i class="fas fa-clock"></i>
-            </div>
-            <div class="quick-stat-info">
-                <span class="quick-stat-value" id="server-time"></span>
-                <span class="quick-stat-label"><?= _("Server Time") ?></span>
-            </div>
-        </div>
-        <div class="quick-stat-item">
-            <div class="quick-stat-icon cpu">
-                <i class="fas fa-microchip"></i>
-            </div>
-            <div class="quick-stat-info">
-                <span class="quick-stat-value" id="cpu-usage">0%</span>
-                <span class="quick-stat-label"><?= _("CPU Usage") ?></span>
-            </div>
-        </div>
-        <div class="quick-stat-item">
-            <div class="quick-stat-icon ram">
-                <i class="fas fa-memory"></i>
-            </div>
-            <div class="quick-stat-info">
-                <span class="quick-stat-value" id="ram-usage">0%</span>
-                <span class="quick-stat-label"><?= _("RAM Usage") ?></span>
-            </div>
-        </div>
-    </div>
+    	<!-- Quick Stats Row -->
+	<div class="quick-stats">
+		<div class="quick-stat-item">
+			<div class="quick-stat-icon uptime">
+				<i class="fas fa-arrow-up"></i>
+			</div>
+			<div class="quick-stat-info">
+				<div class="quick-stat-value"><?= $uptimeFormatted ?></div>
+				<div class="quick-stat-label"><?= _("Uptime") ?></div>
+			</div>
+		</div>
+		<div class="quick-stat-item">
+			<div class="quick-stat-icon time">
+				<i class="fas fa-clock"></i>
+			</div>
+			<div class="quick-stat-info">
+				<div class="quick-stat-value"><?= htmlspecialchars($serverTime) ?></div>
+				<div class="quick-stat-label"><?= _("Server Time") ?></div>
+			</div>
+		</div>
+		<div class="quick-stat-item">
+			<div class="quick-stat-icon cpu">
+				<i class="fas fa-microchip"></i>
+			</div>
+			<div class="quick-stat-info">
+				<div class="quick-stat-value"><?= htmlspecialchars($cpuUsage) ?></div>
+				<div class="quick-stat-label"><?= _("CPU Usage") ?></div>
+			</div>
+		</div>
+		<div class="quick-stat-item">
+			<div class="quick-stat-icon ram">
+				<i class="fas fa-memory"></i>
+			</div>
+			<div class="quick-stat-info">
+				<div class="quick-stat-value"><?= $ramUsageFormatted ?></div>
+				<div class="quick-stat-label"><?= _("RAM Usage") ?></div>
+			</div>
+		</div>
+	</div>
 
     <!-- Main Stats Grid -->
     <div class="stats-grid">
