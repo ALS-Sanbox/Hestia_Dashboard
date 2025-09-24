@@ -1,7 +1,7 @@
 #!/bin/bash
 
 # Hestia Theme Manager Installation Script
-# Version: 2.0.0
+# Version: 2.0.2
 
 set -e
 

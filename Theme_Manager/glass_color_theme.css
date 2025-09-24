@@ -1,1 +1,14 @@
 .sidebar,.sidebar-submenu{background:#1f2937}.card-icon,.quick-stat-icon,.sidebar,.sidebar a,.sidebar-submenu a{color:#fff}.sidebar-menu a:hover,.sidebar-tabs a:hover{background:#374151}.sidebar-tabs a.active{background:#2563eb}.sidebar-submenu{border-left:1px solid rgba(255,255,255,.1)}.sidebar-submenu a:hover{background:#4b5563}.sidebar-menu::-webkit-scrollbar,.sidebar-tabs::-webkit-scrollbar{background:0 0}.underline{background-color:#000}:root{--hestia-primary:#2563eb;--hestia-secondary:#64748b;--hestia-success:#10b981;--hestia-warning:#f59e0b;--hestia-error:#ef4444;--hestia-info:#06b6d4;--hestia-bg:#f8fafc;--hestia-card-bg:#ffffff;--hestia-text:#1e293b;--hestia-text-muted:#64748b;--hestia-border:#e2e8f0}body{background-color:var(--hestia-bg)}.notification-badge{background:var(--hestia-error);color:#fff}.activity-icon.success,.status-indicator{background:var(--hestia-success)}.card-icon.mail,.quick-stat-icon.uptime{background:linear-gradient(45deg,var(--hestia-success),#16a34a)}.quick-stat-icon.time{background:linear-gradient(45deg,var(--hestia-info),#0891b2)}.card-icon.database,.quick-stat-icon.cpu{background:linear-gradient(45deg,var(--hestia-warning),#ea580c)}.card-icon.cron,.quick-stat-icon.ram{background:linear-gradient(45deg,var(--hestia-error),#dc2626)}.card-icon.users{background:linear-gradient(45deg,#6366f1,#8b5cf6)}.card-icon.web,.progress-fill{background:linear-gradient(45deg,var(--hestia-primary),var(--hestia-info))}.card-icon.disk{background:linear-gradient(45deg,#64748b,#475569)}.activity-icon.info{background:var(--hestia-info)}.activity-icon.warning{background:var(--hestia-warning)}.activity-icon.error{background:var(--hestia-error)}.status-badge.running{background:rgba(16,185,129,.1);color:var(--hestia-success)}.status-badge.warning{background:rgba(245,158,11,.1);color:var(--hestia-warning)}.status-badge.error{background:rgba(239,68,68,.1);color:var(--hestia-error)}.hamburger,.quick-action-btn:hover{color:var(--hestia-primary)}.quick-action-btn:hover{border-color:var(--hestia-primary);background:rgba(37,99,235,.05)}@media (max-width:768px){.menu-toggle:checked+.hamburger{color:red}.sidebar{background:#222}}
+
+/* Glassmorphism / card style */
+.stats-card,
+.activity-section,
+.status-section {
+    background: rgba(255, 255, 255, 0.08); /* light transparent layer */
+    border: 1px solid rgba(255, 255, 255, 0.15); /* subtle border */
+    border-radius: 16px;
+    backdrop-filter: blur(12px); /* frosted glass */
+    -webkit-backdrop-filter: blur(12px); /* Safari support */
+    box-shadow: 0 8px 24px rgba(0,0,0,0.15); /* soft depth */
+    transition: transform .2s, box-shadow .3s;
+}
