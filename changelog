@@ -8,4 +8,5 @@ v2.0.2
   -Added new Dark glass theme
   -fixed the mobile css for all themes
   -updated the index file to pull the correct data for the dashboards
+  -fixed it where the web/index file was patched and restored during install and uninstall
   
