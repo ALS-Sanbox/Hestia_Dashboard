@@ -1,7 +1,7 @@
 <?php
 /**
- * Hestia Theme Manager Plugin (Enhanced) - FIXED VERSION
- * Version: 2.0.2
+ * Hestia Theme Manager Plugin
+ * Version: 2.0.3
  * Description: Allows switching between different UI themes for Hestia Control Panel using symlinks and CSS themes
  * Author: Custom Plugin
  */
@@ -36,7 +36,32 @@ class HestiaThemeManager {
         $this->css_custom_themes_path = '/usr/local/hestia/web/css/themes/custom';
         $this->loadConfig();
     }
-    
+	
+	// 🔽 Safe accessors for private properties
+		public function getThemePath() {
+			return $this->theme_path;
+		}
+
+		public function getHestiaPath() {
+			return $this->hestia_path;
+		}
+
+		public function getTemplatesPath() {
+			return $this->templates_path;
+		}
+
+		public function getCssThemesPath() {
+			return $this->css_themes_path;
+		}
+
+		public function getCssCustomThemesPath() {
+			return $this->css_custom_themes_path;
+		}
+		
+		public function getThemeNameFromSource($source){
+			return $this->extractThemeNameFromSource($source);
+		}
+	
     /**
      * Install the theme manager plugin
      */
@@ -50,9 +75,6 @@ class HestiaThemeManager {
             
             // Create config file
             $this->createConfigFile();
-            
-            // Create theme management interface
-            $this->createThemeInterface();
             
             $this->log("Theme Manager Plugin installed successfully");
             return true;
@@ -130,7 +152,588 @@ class HestiaThemeManager {
             return false;
         }
     }
-    
+	
+	public function installTheme($source, $theme_name = null, $options = []) {
+		try {
+			$this->log("Starting theme installation from: $source");
+			
+			// Validate source exists
+			if (!file_exists($source)) {
+				throw new Exception("Source file or directory not found: $source");
+			}
+			
+			// Determine theme name
+			if (empty($theme_name)) {
+				$theme_name = $this->extractThemeNameFromSource($source);
+			}
+			
+			// Validate theme name
+			if (!$this->isValidThemeName($theme_name)) {
+				throw new Exception("Invalid theme name: $theme_name");
+			}
+			
+			// Check if theme already exists
+			$target_dir = $this->theme_path . '/' . $theme_name;
+			if (is_dir($target_dir) && !($options['overwrite'] ?? false)) {
+				throw new Exception("Theme '$theme_name' already exists. Use overwrite option to replace.");
+			}
+			
+			// Create backup if overwriting
+			if (is_dir($target_dir) && ($options['overwrite'] ?? false)) {
+				$this->backupExistingTheme($theme_name);
+			}
+			
+			// Install based on source type
+			if (is_dir($source)) {
+				$result = $this->installThemeFromDirectory($source, $theme_name, $options);
+			} elseif (pathinfo($source, PATHINFO_EXTENSION) === 'zip') {
+				$result = $this->installThemeFromZip($source, $theme_name, $options);
+			} else {
+				throw new Exception("Unsupported source type. Must be directory or .zip file");
+			}
+			
+			if ($result) {
+				// Install CSS theme if present
+				$this->installThemeCssFiles($theme_name);
+				
+				// Update theme registry
+				$this->registerInstalledTheme($theme_name);
+				
+				$this->log("Theme '$theme_name' installed successfully");
+				return true;
+			}
+			
+			return false;
+			
+		} catch (Exception $e) {
+			$this->log("Failed to install theme: " . $e->getMessage());
+			return false;
+		}
+	}
+
+	/**
+	 * Install theme from directory
+	 */
+	private function installThemeFromDirectory($source_dir, $theme_name, $options = []) {
+		$target_dir = $this->theme_path . '/' . $theme_name;
+		
+		// Remove existing if overwriting
+		if (is_dir($target_dir)) {
+			$this->removeDirectory($target_dir);
+		}
+		
+		// Copy theme directory
+		if (!$this->copyDirectory($source_dir, $target_dir)) {
+			throw new Exception("Failed to copy theme directory");
+		}
+		
+		// Validate theme structure
+		if (!$this->validateThemeStructure($target_dir)) {
+			$this->removeDirectory($target_dir);
+			throw new Exception("Invalid theme structure - missing required files");
+		}
+		
+		// Set proper permissions
+		$this->setThemePermissions($target_dir);
+		
+		return true;
+	}
+
+	/**
+	 * Install theme from ZIP file
+	 */
+	private function installThemeFromZip($zip_path, $theme_name, $options = []) {
+		if (!class_exists('ZipArchive')) {
+			throw new Exception("ZipArchive class not available. Install php-zip extension.");
+		}
+		
+		$zip = new ZipArchive();
+		$result = $zip->open($zip_path);
+		
+		if ($result !== TRUE) {
+			throw new Exception("Failed to open ZIP file: " . $this->getZipError($result));
+		}
+		
+		$temp_dir = sys_get_temp_dir() . '/hestia_theme_' . uniqid();
+		$target_dir = $this->theme_path . '/' . $theme_name;
+		
+		try {
+			// Extract to temporary directory
+			if (!$zip->extractTo($temp_dir)) {
+				throw new Exception("Failed to extract ZIP file");
+			}
+			$zip->close();
+			
+			// Find theme root in extracted files
+			$theme_root = $this->findThemeRootInExtraction($temp_dir);
+			if (!$theme_root) {
+				throw new Exception("Could not locate theme files in ZIP archive");
+			}
+			
+			// Remove existing if overwriting
+			if (is_dir($target_dir)) {
+				$this->removeDirectory($target_dir);
+			}
+			
+			// Move theme to final location
+			if (!rename($theme_root, $target_dir)) {
+				throw new Exception("Failed to move theme to final location");
+			}
+			
+			// Validate theme structure
+			if (!$this->validateThemeStructure($target_dir)) {
+				$this->removeDirectory($target_dir);
+				throw new Exception("Invalid theme structure - missing required files");
+			}
+			
+			// Set proper permissions
+			$this->setThemePermissions($target_dir);
+			
+			return true;
+			
+		} finally {
+			// Clean up temporary directory
+			if (is_dir($temp_dir)) {
+				$this->removeDirectory($temp_dir);
+			}
+		}
+	}
+
+	/**
+	 * Uninstall a theme
+	 */
+	public function uninstallTheme($theme_name, $options = []) {
+		try {
+			$this->log("Starting theme uninstallation: $theme_name");
+			
+			// Validate theme name
+			if (!$this->isValidThemeName($theme_name)) {
+				throw new Exception("Invalid theme name: $theme_name");
+			}
+			
+			// Prevent uninstalling 'original' theme
+			if ($theme_name === 'original') {
+				throw new Exception("Cannot uninstall the original theme");
+			}
+			
+			$theme_dir = $this->theme_path . '/' . $theme_name;
+			
+			// Check if theme exists
+			if (!is_dir($theme_dir)) {
+				throw new Exception("Theme '$theme_name' is not installed");
+			}
+			
+			// Check if theme is currently active
+			if ($this->getCurrentTheme() === $theme_name) {
+				if ($options['force'] ?? false) {
+					$this->log("Switching to original theme before uninstalling active theme");
+					$this->applyTheme('original');
+				} else {
+					throw new Exception("Cannot uninstall active theme '$theme_name'. Switch to another theme first or use force option.");
+				}
+			}
+			
+			// Create backup if requested
+			if ($options['backup'] ?? false) {
+				$this->createThemeBackupBeforeUninstall($theme_name);
+			}
+			
+			// Remove theme CSS files
+			$this->removeThemeCssFiles($theme_name);
+			
+			// Remove theme directory
+			if (!$this->removeDirectory($theme_dir)) {
+				throw new Exception("Failed to remove theme directory");
+			}
+			
+			// Unregister theme
+			$this->unregisterInstalledTheme($theme_name);
+			
+			$this->log("Theme '$theme_name' uninstalled successfully");
+			return true;
+			
+		} catch (Exception $e) {
+			$this->log("Failed to uninstall theme '$theme_name': " . $e->getMessage());
+			return false;
+		}
+	}
+
+	/**
+	 * Get list of installed themes with metadata
+	 */
+	public function getInstalledThemesWithMetadata() {
+		$themes = [];
+		$theme_dirs = $this->getAvailableThemes();
+		
+		foreach ($theme_dirs as $theme_name) {
+			$theme_info = $this->getThemeMetadata($theme_name);
+			$themes[$theme_name] = $theme_info;
+		}
+		
+		return $themes;
+	}
+
+	/**
+	 * Get theme metadata from theme.json
+	 */
+	public function getThemeMetadata($theme_name) {
+		$theme_dir = $this->theme_path . '/' . $theme_name;
+		$config_file = $theme_dir . '/theme.json';
+		
+		$default_info = [
+			'name' => ucwords(str_replace(['-', '_'], ' ', $theme_name)),
+			'description' => 'Custom Hestia theme',
+			'version' => '1.0.0',
+			'author' => 'Unknown',
+			'css_theme' => 'default',
+			'installed_date' => 'Unknown',
+			'has_css' => false,
+			'file_count' => 0,
+			'size' => 0
+		];
+		
+		if (file_exists($config_file)) {
+			$config = json_decode(file_get_contents($config_file), true);
+			if (json_last_error() === JSON_ERROR_NONE) {
+				$default_info = array_merge($default_info, $config);
+			}
+		}
+		
+		// Add calculated metadata
+		if (is_dir($theme_dir)) {
+			$default_info['has_css'] = file_exists($theme_dir . '/css/color_theme.css');
+			$default_info['file_count'] = $this->countThemeFiles($theme_dir);
+			$default_info['size'] = $this->getDirectorySize($theme_dir);
+		}
+		
+		return $default_info;
+	}
+
+	/**
+	 * Validate theme name
+	 */
+	private function isValidThemeName($name) {
+		// Check for valid characters (alphanumeric, dash, underscore)
+		if (!preg_match('/^[a-zA-Z0-9_-]+$/', $name)) {
+			return false;
+		}
+		
+		// Check length
+		if (strlen($name) < 2 || strlen($name) > 50) {
+			return false;
+		}
+		
+		// Reserved names
+		$reserved = ['original', 'default', 'admin', 'root', 'system', 'hestia'];
+		if (in_array(strtolower($name), $reserved)) {
+			return false;
+		}
+		
+		return true;
+	}
+
+	/**
+	 * Extract theme name from source path
+	 */
+	private function extractThemeNameFromSource($source) {
+		$basename = basename($source);
+		
+		// Remove .zip extension if present
+		if (pathinfo($basename, PATHINFO_EXTENSION) === 'zip') {
+			$basename = pathinfo($basename, PATHINFO_FILENAME);
+		}
+		
+		// Clean up name
+		$name = preg_replace('/[^a-zA-Z0-9_-]/', '_', $basename);
+		$name = trim($name, '_-');
+		
+		return $name;
+	}
+
+	/**
+	 * Validate theme structure
+	 */
+	private function validateThemeStructure($theme_dir) {
+		// Required files/directories
+		$required_items = [
+			'header.php',
+			'footer.php',
+			'includes',
+			'pages'
+		];
+		
+		foreach ($required_items as $item) {
+			$path = $theme_dir . '/' . $item;
+			if (!file_exists($path)) {
+				$this->log("Missing required theme file/directory: $item");
+				return false;
+			}
+		}
+		
+		return true;
+	}
+
+	/**
+	 * Install theme CSS files
+	 */
+	private function installThemeCssFiles($theme_name) {
+		$theme_dir = $this->theme_path . '/' . $theme_name;
+		$css_file = $theme_dir . '/css/color_theme.css';
+		
+		if (file_exists($css_file)) {
+			$target_css_file = $this->css_custom_themes_path . '/' . $theme_name . '_color.css';
+			
+			// Ensure custom themes directory exists
+			if (!is_dir($this->css_custom_themes_path)) {
+				mkdir($this->css_custom_themes_path, 0755, true);
+			}
+			
+			copy($css_file, $target_css_file);
+			chmod($target_css_file, 0644);
+			$this->log("Installed CSS file: {$theme_name}_color.css");
+		}
+	}
+
+	/**
+	 * Remove theme CSS files
+	 */
+	private function removeThemeCssFiles($theme_name) {
+		$css_file = $this->css_custom_themes_path . '/' . $theme_name . '_color.css';
+		
+		if (file_exists($css_file)) {
+			unlink($css_file);
+			$this->log("Removed CSS file: {$theme_name}_color.css");
+		}
+	}
+
+	/**
+	 * Set proper permissions for theme files
+	 */
+	private function setThemePermissions($theme_dir) {
+		// Set directory permissions
+		chmod($theme_dir, 0755);
+		
+		// Set file permissions recursively
+		$iterator = new RecursiveIteratorIterator(
+			new RecursiveDirectoryIterator($theme_dir, RecursiveDirectoryIterator::SKIP_DOTS),
+			RecursiveIteratorIterator::SELF_FIRST
+		);
+		
+		foreach ($iterator as $item) {
+			if ($item->isDir()) {
+				chmod($item, 0755);
+			} else {
+				chmod($item, 0644);
+			}
+		}
+		
+		// Set ownership
+		$this->setOwnership($theme_dir, 'hestiaweb', 'hestiaweb');
+	}
+
+	/**
+	 * Set ownership recursively
+	 */
+	private function setOwnership($path, $user, $group) {
+		if (function_exists('chown') && function_exists('chgrp')) {
+			if (is_dir($path)) {
+				chown($path, $user);
+				chgrp($path, $group);
+				
+				$iterator = new RecursiveIteratorIterator(
+					new RecursiveDirectoryIterator($path, RecursiveDirectoryIterator::SKIP_DOTS)
+				);
+				
+				foreach ($iterator as $item) {
+					chown($item, $user);
+					chgrp($item, $group);
+				}
+			} else {
+				chown($path, $user);
+				chgrp($path, $group);
+			}
+		}
+	}
+
+	/**
+	 * Register installed theme
+	 */
+	private function registerInstalledTheme($theme_name) {
+		$config_file = $this->plugin_path . '/config/config.json';
+		
+		if (file_exists($config_file)) {
+			$config = json_decode(file_get_contents($config_file), true);
+		} else {
+			$config = [];
+		}
+		
+		if (!isset($config['installed_themes'])) {
+			$config['installed_themes'] = [];
+		}
+		
+		$config['installed_themes'][$theme_name] = [
+			'installed_date' => date('Y-m-d H:i:s'),
+			'version' => '1.0.0'
+		];
+		
+		file_put_contents($config_file, json_encode($config, JSON_PRETTY_PRINT));
+	}
+
+	/**
+	 * Unregister installed theme
+	 */
+	private function unregisterInstalledTheme($theme_name) {
+		$config_file = $this->plugin_path . '/config/config.json';
+		
+		if (file_exists($config_file)) {
+			$config = json_decode(file_get_contents($config_file), true);
+			if (isset($config['installed_themes'][$theme_name])) {
+				unset($config['installed_themes'][$theme_name]);
+				file_put_contents($config_file, json_encode($config, JSON_PRETTY_PRINT));
+			}
+		}
+	}
+
+	/**
+	 * Backup existing theme before overwrite
+	 */
+	private function backupExistingTheme($theme_name) {
+		$theme_dir = $this->theme_path . '/' . $theme_name;
+		$backup_name = $theme_name . '_backup_' . date('Y-m-d_H-i-s');
+		$backup_path = $this->backup_path . '/' . $backup_name;
+		
+		if (is_dir($theme_dir)) {
+			$this->copyDirectory($theme_dir, $backup_path);
+			$this->log("Created backup of existing theme: $backup_name");
+		}
+	}
+
+	/**
+	 * Create theme backup before uninstall
+	 */
+	private function createThemeBackupBeforeUninstall($theme_name) {
+		$theme_dir = $this->theme_path . '/' . $theme_name;
+		$backup_name = $theme_name . '_uninstall_backup_' . date('Y-m-d_H-i-s');
+		$backup_path = $this->backup_path . '/' . $backup_name;
+		
+		if (is_dir($theme_dir)) {
+			$this->copyDirectory($theme_dir, $backup_path);
+			$this->log("Created uninstall backup: $backup_name");
+		}
+	}
+
+	/**
+	 * Find theme root in extracted ZIP
+	 */
+	private function findThemeRootInExtraction($temp_dir) {
+		// Look for theme structure in temp directory
+		if ($this->validateThemeStructure($temp_dir)) {
+			return $temp_dir;
+		}
+		
+		// Look in subdirectories (common in GitHub zips)
+		$dirs = glob($temp_dir . '/*', GLOB_ONLYDIR);
+		foreach ($dirs as $dir) {
+			if ($this->validateThemeStructure($dir)) {
+				return $dir;
+			}
+		}
+		
+		return null;
+	}
+
+	/**
+	 * Count files in theme directory
+	 */
+	private function countThemeFiles($theme_dir) {
+		if (!is_dir($theme_dir)) {
+			return 0;
+		}
+		
+		$count = 0;
+		$iterator = new RecursiveIteratorIterator(
+			new RecursiveDirectoryIterator($theme_dir, RecursiveDirectoryIterator::SKIP_DOTS)
+		);
+		
+		foreach ($iterator as $file) {
+			if ($file->isFile()) {
+				$count++;
+			}
+		}
+		
+		return $count;
+	}
+
+	/**
+	 * Get directory size in bytes
+	 */
+	private function getDirectorySize($theme_dir) {
+		if (!is_dir($theme_dir)) {
+			return 0;
+		}
+		
+		$size = 0;
+		$iterator = new RecursiveIteratorIterator(
+			new RecursiveDirectoryIterator($theme_dir, RecursiveDirectoryIterator::SKIP_DOTS)
+		);
+		
+		foreach ($iterator as $file) {
+			if ($file->isFile()) {
+				$size += $file->getSize();
+			}
+		}
+		
+		return $size;
+	}
+
+	/**
+	 * Format file size for display
+	 */
+	public function formatFileSize($bytes) {
+		$units = ['B', 'KB', 'MB', 'GB'];
+		$bytes = max($bytes, 0);
+		$pow = floor(($bytes ? log($bytes) : 0) / log(1024));
+		$pow = min($pow, count($units) - 1);
+		
+		$bytes /= pow(1024, $pow);
+		
+		return round($bytes, 2) . ' ' . $units[$pow];
+	}
+
+	/**
+	 * Get ZIP error message
+	 */
+	private function getZipError($error_code) {
+		$errors = [
+			ZipArchive::ER_OK => 'No error',
+			ZipArchive::ER_MULTIDISK => 'Multi-disk zip archives not supported',
+			ZipArchive::ER_RENAME => 'Renaming temporary file failed',
+			ZipArchive::ER_CLOSE => 'Closing zip archive failed',
+			ZipArchive::ER_SEEK => 'Seek error',
+			ZipArchive::ER_READ => 'Read error',
+			ZipArchive::ER_WRITE => 'Write error',
+			ZipArchive::ER_CRC => 'CRC error',
+			ZipArchive::ER_ZIPCLOSED => 'Containing zip archive was closed',
+			ZipArchive::ER_NOENT => 'No such file',
+			ZipArchive::ER_EXISTS => 'File already exists',
+			ZipArchive::ER_OPEN => 'Can\'t open file',
+			ZipArchive::ER_TMPOPEN => 'Failure to create temporary file',
+			ZipArchive::ER_ZLIB => 'Zlib error',
+			ZipArchive::ER_MEMORY => 'Memory allocation failure',
+			ZipArchive::ER_CHANGED => 'Entry has been changed',
+			ZipArchive::ER_COMPNOTSUPP => 'Compression method not supported',
+			ZipArchive::ER_EOF => 'Premature EOF',
+			ZipArchive::ER_INVAL => 'Invalid argument',
+			ZipArchive::ER_NOZIP => 'Not a zip archive',
+			ZipArchive::ER_INTERNAL => 'Internal error',
+			ZipArchive::ER_INCONS => 'Zip archive inconsistent',
+			ZipArchive::ER_REMOVE => 'Can\'t remove file',
+			ZipArchive::ER_DELETED => 'Entry has been deleted'
+		];
+		
+		return $errors[$error_code] ?? "Unknown error ($error_code)";
+	}
+	
     /**
      * Set CSS theme for Hestia Control Panel
      */
@@ -707,273 +1310,7 @@ class HestiaThemeManager {
     }
     
     /**
-     * Create theme management interface - FIXED VERSION
-     */
-    private function createThemeInterface() {
-        $interface_content = '<?php
-/**
- * Hestia Theme Manager Web Interface (Enhanced) - FIXED VERSION
- */
-require_once "/usr/local/hestia/plugins/theme-manager/hestia_theme_manager.php";
-
-$theme_manager = new HestiaThemeManager();
-$error_message = "";
-$success_message = "";
-
-// Handle POST requests
-if ($_POST) {
-    if (isset($_POST["apply_theme"])) {
-        $theme_name = $_POST["theme_name"] ?? "";
-        $css_theme = !empty($_POST["css_theme"]) ? $_POST["css_theme"] : null;
-        
-        if (empty($theme_name)) {
-            $error_message = "No theme name provided";
-        } else {
-            $result = $theme_manager->applyTheme($theme_name, $css_theme);
-            if ($result) {
-                $success_message = "Theme \'" . htmlspecialchars($theme_name) . "\' applied successfully" . 
-                                 ($css_theme ? " with CSS theme \'" . htmlspecialchars($css_theme) . "\'" : "");
-            } else {
-                $error_message = "Failed to apply theme \'" . htmlspecialchars($theme_name) . "\'";
-            }
-        }
-    } elseif (isset($_POST["set_css_theme"])) {
-        $css_theme = $_POST["css_theme"] ?? "";
-        if (empty($css_theme)) {
-            $error_message = "No CSS theme provided";
-        } else {
-            $result = $theme_manager->setCssTheme($css_theme);
-            if ($result) {
-                $success_message = "CSS theme \'" . htmlspecialchars($css_theme) . "\' applied successfully";
-            } else {
-                $error_message = "Failed to apply CSS theme \'" . htmlspecialchars($css_theme) . "\'";
-            }
-        }
-    }
-}
-
-$current_theme = $theme_manager->getCurrentTheme();
-$current_css_theme = $theme_manager->getCurrentCssTheme();
-$available_themes = $theme_manager->getAvailableThemes();
-$available_css_themes = $theme_manager->getAvailableCssThemes();
-$status = $theme_manager->getThemeStatus();
-?>
-<!DOCTYPE html>
-<html>
-<head>
-    <title>Hestia Theme Manager</title>
-    <style>
-        body { font-family: Arial, sans-serif; margin: 20px; background: #f5f5f5; }
-        .container { max-width: 900px; margin: 0 auto; background: white; padding: 20px; border-radius: 8px; }
-        .theme-item { padding: 15px; border: 1px solid #ddd; margin: 10px 0; border-radius: 5px; }
-        .current { background-color: #e8f5e8; border-color: #28a745; }
-        .status-info { background: #e3f2fd; padding: 15px; margin: 15px 0; border-radius: 5px; }
-        .css-theme-section { background: #fff3e0; padding: 15px; margin: 15px 0; border-radius: 5px; }
-        .status-detail { font-family: monospace; font-size: 12px; margin: 5px 0; }
-        button { background: #007cba; color: white; padding: 10px 20px; border: none; cursor: pointer; border-radius: 4px; margin: 5px; }
-        button:hover { background: #005a8b; }
-        button.css-theme-btn { background: #ff9800; }
-        button.css-theme-btn:hover { background: #f57c00; }
-        .message { padding: 15px; margin: 15px 0; border-radius: 5px; }
-        .success { background: #dff0d8; border: 1px solid #d6e9c6; color: #3c763d; }
-        .error { background: #f8d7da; border: 1px solid #f5c6cb; color: #721c24; }
-        .warning { background: #fff3cd; border: 1px solid #ffeaa7; color: #856404; }
-        .badge { background: #6c757d; color: white; padding: 2px 8px; border-radius: 12px; font-size: 12px; margin: 2px; }
-        .badge.symlink { background: #17a2b8; }
-        .badge.directory { background: #28a745; }
-        .badge.css-theme { background: #ff9800; }
-        .info-grid { display: grid; grid-template-columns: 150px 1fr; gap: 10px; align-items: center; }
-        .theme-controls { display: flex; align-items: center; gap: 10px; margin-top: 10px; }
-        .theme-controls select { padding: 8px; border: 1px solid #ddd; border-radius: 4px; }
-        .section-header { color: #666; font-weight: bold; margin: 20px 0 10px 0; border-bottom: 2px solid #eee; padding-bottom: 5px; }
-        .debug-info { background: #f8f9fa; border: 1px solid #e9ecef; padding: 10px; margin: 10px 0; border-radius: 4px; font-family: monospace; font-size: 12px; }
-    </style>
-</head>
-<body>
-    <div class="container">
-        <h1>🎨 Hestia Theme Manager</h1>
-        
-        <?php if (!empty($success_message)): ?>
-            <div class="message success"><?= htmlspecialchars($success_message) ?></div>
-        <?php endif; ?>
-        
-        <?php if (!empty($error_message)): ?>
-            <div class="message error"><?= htmlspecialchars($error_message) ?></div>
-        <?php endif; ?>
-        
-        <div class="status-info">
-            <h3>System Status</h3>
-            <div class="info-grid">
-                <strong>Template Theme:</strong>
-                <span><?= htmlspecialchars($current_theme) ?> 
-                    <?php if ($status["is_symlink"]): ?>
-                        <span class="badge symlink">SYMLINK</span>
-                    <?php else: ?>
-                        <span class="badge directory">DIRECTORY</span>
-                    <?php endif; ?>
-                </span>
-                
-                <strong>CSS Theme:</strong>
-                <span><?= htmlspecialchars($current_css_theme) ?> <span class="badge css-theme">CSS</span></span>
-                
-                <strong>Templates Status:</strong>
-                <span><?= $status["templates_exists"] ? "✅ EXISTS" : "❌ MISSING" ?></span>
-                
-                <?php if ($status["is_symlink"]): ?>
-                <strong>Symlink Target:</strong>
-                <code><?= htmlspecialchars($status["symlink_target"]) ?></code>
-                
-                <strong>Target Valid:</strong>
-                <span><?= $status["symlink_valid"] ? "✅ VALID" : "❌ BROKEN" ?></span>
-                <?php endif; ?>
-                
-                <strong>Available Themes:</strong>
-                <span><?= count($available_themes) ?> template themes, <?= count($available_css_themes) ?> CSS themes</span>
-            </div>
-            
-            <div class="debug-info">
-                <strong>Debug Info:</strong><br>
-                Templates Path: <?= htmlspecialchars($theme_manager->templates_path) ?><br>
-                Theme Path: <?= htmlspecialchars($theme_manager->theme_path) ?><br>
-                Plugin Path: <?= htmlspecialchars($theme_manager->plugin_path) ?>
-            </div>
-        </div>
-        
-        <!-- CSS Theme Quick Selection -->
-        <div class="css-theme-section">
-            <h3>🎨 Quick CSS Theme Selection</h3>
-            <p>Change only the CSS theme without affecting templates:</p>
-            <form method="post" style="display: inline-flex; align-items: center; gap: 10px;">
-                <select name="css_theme">
-                    <?php foreach ($available_css_themes as $css_theme): ?>
-                        <option value="<?= htmlspecialchars($css_theme) ?>" <?= $css_theme === $current_css_theme ? "selected" : "" ?>>
-                            <?= htmlspecialchars(ucwords(str_replace(["-", "_"], " ", $css_theme))) ?>
-                        </option>
-                    <?php endforeach; ?>
-                </select>
-                <button type="submit" name="set_css_theme" class="css-theme-btn">Apply CSS Theme</button>
-            </form>
-        </div>
-        
-        <div class="section-header">Template Theme Management</div>
-        
-        <form method="post">
-            <div class="theme-item <?= $current_theme === "original" ? "current" : "" ?>">
-                <strong>🏠 Original Hestia Theme</strong>
-                <br><small>Default Hestia Control Panel theme (uses real templates directory)</small>
-                <?php if ($current_theme !== "original"): ?>
-                    <div class="theme-controls">
-                        <select name="css_theme">
-                            <?php foreach ($available_css_themes as $css_theme): ?>
-                                <option value="<?= htmlspecialchars($css_theme) ?>" <?= $css_theme === "default" ? "selected" : "" ?>>
-                                    <?= htmlspecialchars(ucwords(str_replace(["-", "_"], " ", $css_theme))) ?>
-                                </option>
-                            <?php endforeach; ?>
-                        </select>
-                        <input type="hidden" name="theme_name" value="original">
-                        <button type="submit" name="apply_theme" onclick="return confirm(\'Restore original Hestia theme?\')">
-                            🔄 Restore Original Theme
-                        </button>
-                    </div>
-                <?php else: ?>
-                    <br><br><span class="badge">ACTIVE</span>
-                <?php endif; ?>
-            </div>
-        </form>
-        
-        <?php foreach ($available_themes as $theme): ?>
-            <?php 
-            // Try to get theme config
-            $theme_config_file = "/usr/local/hestia/web/themes/$theme/theme.json";
-            $theme_config = file_exists($theme_config_file) ? json_decode(file_get_contents($theme_config_file), true) : [];
-            if (json_last_error() !== JSON_ERROR_NONE) {
-                $theme_config = [];
-            }
-            $recommended_css_theme = $theme_config["css_theme"] ?? "default";
-            ?>
-            <form method="post">
-                <div class="theme-item <?= $current_theme === $theme ? "current" : "" ?>">
-                    <strong>🎨 <?= htmlspecialchars($theme_config["name"] ?? ucwords(str_replace(["-", "_"], " ", $theme))) ?></strong>
-                    <br><small>Custom theme: <code><?= htmlspecialchars($theme) ?></code> (uses symlink)</small>
-                    <br><small>Location: <code>/usr/local/hestia/web/themes/<?= htmlspecialchars($theme) ?></code></small>
-                    <?php if (!empty($theme_config["description"])): ?>
-                        <br><small><?= htmlspecialchars($theme_config["description"]) ?></small>
-                    <?php endif; ?>
-                    
-                    <?php if ($current_theme !== $theme): ?>
-                        <div class="theme-controls">
-                            <select name="css_theme">
-                                <?php foreach ($available_css_themes as $css_theme): ?>
-                                    <option value="<?= htmlspecialchars($css_theme) ?>" <?= $css_theme === $recommended_css_theme ? "selected" : "" ?>>
-                                        <?= htmlspecialchars(ucwords(str_replace(["-", "_"], " ", $css_theme))) ?>
-                                        <?= $css_theme === $recommended_css_theme ? " (recommended)" : "" ?>
-                                    </option>
-                                <?php endforeach; ?>
-                            </select>
-                            <input type="hidden" name="theme_name" value="<?= htmlspecialchars($theme) ?>">
-                            <button type="submit" name="apply_theme" onclick="return confirm(\'Apply <?= htmlspecialchars($theme) ?> theme?\')">
-                                ✨ Apply Theme
-                            </button>
-                        </div>
-                    <?php else: ?>
-                        <br><br><span class="badge">ACTIVE</span>
-                    <?php endif; ?>
-                </div>
-            </form>
-        <?php endforeach; ?>
-        
-        <?php if (empty($available_themes)): ?>
-            <div class="theme-item">
-                <em>📁 No custom themes installed.</em>
-                <br><br>
-                To add themes:
-                <ol>
-                    <li>Create a directory in <code>/usr/local/hestia/web/themes/your-theme-name/</code></li>
-                    <li>Copy the Hestia templates structure to your theme directory</li>
-                    <li>Optionally create a <code>theme.json</code> config file with theme metadata</li>
-                    <li>Modify the files to customize your theme</li>
-                    <li>Apply the theme using this interface or CLI</li>
-                </ol>
-                <br>
-                <strong>Theme Configuration Example (theme.json):</strong>
-                <pre style="background: #f8f9fa; padding: 10px; border-radius: 4px; font-size: 12px;">{
-    "name": "My Custom Theme",
-    "description": "A beautiful custom theme for Hestia",
-    "version": "1.0.0",
-    "css_theme": "dark",
-    "author": "Your Name"
-}</pre>
-            </div>
-        <?php endif; ?>
-        
-        <hr>
-        <h3>📋 CLI Commands</h3>
-        <div style="background: #2d3748; color: #e2e8f0; padding: 15px; border-radius: 5px; font-family: monospace;">
-            <div>hestia-theme list &nbsp; &nbsp; &nbsp; &nbsp; &nbsp; &nbsp; # List available template themes</div>
-            <div>hestia-theme list-css &nbsp; &nbsp; &nbsp; &nbsp; # List available CSS themes</div>
-            <div>hestia-theme current &nbsp; &nbsp; &nbsp; &nbsp; &nbsp; # Show current themes</div>
-            <div>hestia-theme apply theme &nbsp; &nbsp; &nbsp; # Apply template theme</div>
-            <div>hestia-theme apply theme css &nbsp; # Apply template + CSS theme</div>
-            <div>hestia-theme css theme &nbsp; &nbsp; &nbsp; &nbsp; # Apply only CSS theme</div>
-            <div>hestia-theme status &nbsp; &nbsp; &nbsp; &nbsp; &nbsp; # Show detailed status</div>
-        </div>
-        
-        <hr>
-        <div style="font-size: 12px; color: #666; text-align: center; margin-top: 20px;">
-            Hestia Theme Manager v2.0.1 | Template switching via symlinks + CSS theme support
-        </div>
-    </div>
-</body>
-</html>';
-        
-        if (!file_put_contents('/usr/local/hestia/web/theme-manager.php', $interface_content)) {
-            throw new Exception("Failed to create theme interface file");
-        }
-        chmod('/usr/local/hestia/web/theme-manager.php', 0644);
-    }
-    
-    /**
-     * Log messages - ENHANCED VERSION
+     * Log messages
      */
     private function log($message) {
         $log_file = $this->plugin_path . '/logs/theme-manager.log';
@@ -1065,14 +1402,321 @@ if (php_sapi_name() === 'cli') {
                 echo "- Available template themes: " . count($status['available_themes']) . "\n";
                 echo "- Available CSS themes: " . count($status['available_css_themes']) . "\n";
                 break;
-                
+				
+			case 'install-theme':
+				if (isset($argv[2])) {
+					$source = $argv[2];
+					$theme_name = isset($argv[3]) ? $argv[3] : null;
+					$overwrite = in_array('--overwrite', $argv) || in_array('-f', $argv);
+					
+					echo "Installing theme from: $source\n";
+					if ($theme_name) {
+						echo "Theme name: $theme_name\n";
+					}
+					if ($overwrite) {
+						echo "Overwrite mode enabled\n";
+					}
+					
+					$options = ['overwrite' => $overwrite];
+					$result = $theme_manager->installTheme($source, $theme_name, $options);
+					
+					if ($result) {
+						echo "✅ Theme installed successfully\n";
+						if (!$theme_name) {
+							$theme_name = $theme_manager->getThemeNameFromSource($source);
+						}
+						echo "Use 'hestia-theme apply $theme_name' to activate it\n";
+					} else {
+						echo "❌ Theme installation failed\n";
+						exit(1);
+					}
+				} else {
+					echo "Usage: php hestia_theme_manager.php install-theme <source> [theme_name] [--overwrite|-f]\n";
+					echo "Examples:\n";
+					echo "  install-theme /path/to/theme-directory my-theme\n";
+					echo "  install-theme /path/to/theme.zip custom-theme --overwrite\n";
+					echo "  install-theme /path/to/theme.zip (auto-detect name)\n";
+					exit(1);
+				}
+				break;
+
+			case 'uninstall-theme':
+				if (isset($argv[2])) {
+					$theme_name = $argv[2];
+					$force = in_array('--force', $argv) || in_array('-f', $argv);
+					$backup = in_array('--backup', $argv) || in_array('-b', $argv);
+					
+					echo "Uninstalling theme: $theme_name\n";
+					if ($force) echo "Force mode enabled\n";
+					if ($backup) echo "Backup mode enabled\n";
+					
+					// Confirm unless force mode
+					if (!$force) {
+						echo "Are you sure you want to uninstall theme '$theme_name'? (y/N): ";
+						$handle = fopen("php://stdin", "r");
+						$confirmation = trim(fgets($handle));
+						fclose($handle);
+						
+						if (strtolower($confirmation) !== 'y' && strtolower($confirmation) !== 'yes') {
+							echo "Uninstallation cancelled\n";
+							exit(0);
+						}
+					}
+					
+					$options = ['force' => $force, 'backup' => $backup];
+					$result = $theme_manager->uninstallTheme($theme_name, $options);
+					
+					if ($result) {
+						echo "✅ Theme '$theme_name' uninstalled successfully\n";
+					} else {
+						echo "❌ Theme uninstallation failed\n";
+						exit(1);
+					}
+				} else {
+					echo "Usage: php hestia_theme_manager.php uninstall-theme <theme_name> [--force|-f] [--backup|-b]\n";
+					echo "Examples:\n";
+					echo "  uninstall-theme my-theme\n";
+					echo "  uninstall-theme old-theme --force --backup\n";
+					exit(1);
+				}
+				break;
+
+		case 'list-installed':
+			$themes = $theme_manager->getInstalledThemesWithMetadata();
+			$current = $theme_manager->getCurrentTheme();
+			
+			echo "📦 Installed Themes with Metadata\n";
+			echo "━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━\n";
+			
+			// Show original theme
+			$indicator = ($current === 'original') ? '🔵 ACTIVE' : '⚪';
+			echo "$indicator original (Hestia Default Theme)\n";
+			echo "    Description: Default Hestia Control Panel theme\n";
+			echo "    Type: Built-in\n";
+			echo "\n";
+			
+			if (empty($themes)) {
+				echo "No custom themes installed.\n";
+				echo "\nUse 'hestia-theme install-theme <source>' to install themes.\n";
+			} else {
+				foreach ($themes as $theme_name => $info) {
+					$indicator = ($current === $theme_name) ? '🔵 ACTIVE' : '⚪';
+					echo "$indicator $theme_name\n";
+					echo "    Name: " . $info['name'] . "\n";
+					echo "    Description: " . $info['description'] . "\n";
+					echo "    Version: " . $info['version'] . "\n";
+					echo "    Author: " . $info['author'] . "\n";
+					echo "    Installed: " . ($info['installed_date'] ?? 'Unknown') . "\n";
+					echo "    Files: " . $info['file_count'] . " files, " . $theme_manager->formatFileSize($info['size']) . "\n";
+					echo "    CSS Theme: " . ($info['has_css'] ? $info['css_theme'] : 'None') . "\n";
+					echo "\n";
+				}
+			}
+			break;
+
+		case 'theme-info':
+			if (isset($argv[2])) {
+				$theme_name = $argv[2];
+				
+				if ($theme_name === 'original') {
+					echo "📋 Theme Information: original\n";
+					echo "━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━\n";
+					echo "Name: Hestia Default Theme\n";
+					echo "Type: Built-in\n";
+					echo "Description: Default Hestia Control Panel theme\n";
+					echo "Status: " . ($theme_manager->getCurrentTheme() === 'original' ? 'Active' : 'Available') . "\n";
+				} else {
+					$info = $theme_manager->getThemeMetadata($theme_name);
+					$current = $theme_manager->getCurrentTheme();
+					
+					echo "📋 Theme Information: $theme_name\n";
+					echo "━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━\n";
+					echo "Name: " . $info['name'] . "\n";
+					echo "Description: " . $info['description'] . "\n";
+					echo "Version: " . $info['version'] . "\n";
+					echo "Author: " . $info['author'] . "\n";
+					echo "CSS Theme: " . $info['css_theme'] . "\n";
+					echo "Has Custom CSS: " . ($info['has_css'] ? 'Yes' : 'No') . "\n";
+					echo "File Count: " . $info['file_count'] . " files\n";
+					echo "Size: " . $theme_manager->formatFileSize($info['size']) . "\n";
+					echo "Installed: " . ($info['installed_date'] ?? 'Unknown') . "\n";
+					echo "Status: " . ($current === $theme_name ? 'Active' : 'Available') . "\n";
+				}
+			} else {
+				echo "Usage: php hestia_theme_manager.php theme-info <theme_name>\n";
+				echo "Example: theme-info my-custom-theme\n";
+				exit(1);
+			}
+			break;
+
+		case 'backup-theme':
+			if (isset($argv[2])) {
+				$theme_name = $argv[2];
+				$backup_name = isset($argv[3]) ? $argv[3] : $theme_name . '_manual_backup_' . date('Y-m-d_H-i-s');
+				
+				echo "Creating backup of theme: $theme_name\n";
+				
+				if ($theme_name === 'original') {
+					// Backup current templates
+					$result = $theme_manager->backupCurrentTemplates($backup_name);
+				} else {
+					$theme_dir = $theme_manager->theme_path . '/' . $theme_name;
+					if (!is_dir($theme_dir)) {
+						echo "❌ Theme '$theme_name' not found\n";
+						exit(1);
+					}
+					$backup_path = $theme_manager->backup_path . '/' . $backup_name;
+					$result = $theme_manager->copyDirectory($theme_dir, $backup_path);
+				}
+				
+				if ($result) {
+					echo "✅ Theme backup created: $backup_name\n";
+					echo "Backup location: " . $theme_manager->backup_path . "/$backup_name\n";
+				} else {
+					echo "❌ Backup creation failed\n";
+					exit(1);
+				}
+			} else {
+				echo "Usage: php hestia_theme_manager.php backup-theme <theme_name> [backup_name]\n";
+				echo "Examples:\n";
+				echo "  backup-theme my-theme\n";
+				echo "  backup-theme original my-original-backup\n";
+				exit(1);
+			}
+			break;
+
+		case 'restore-backup':
+			if (isset($argv[2])) {
+				$backup_name = $argv[2];
+				$backup_path = $theme_manager->backup_path . '/' . $backup_name;
+				
+				if (!is_dir($backup_path)) {
+					echo "❌ Backup '$backup_name' not found\n";
+					exit(1);
+				}
+				
+				echo "Available backups:\n";
+				$backups = glob($theme_manager->backup_path . '/*');
+				foreach ($backups as $backup) {
+					$name = basename($backup);
+					echo "  - $name\n";
+				}
+				echo "\nThis feature would restore a backup. Implementation depends on backup type.\n";
+				echo "Manual restoration: copy from $backup_path to theme directory\n";
+			} else {
+				echo "Usage: php hestia_theme_manager.php restore-backup <backup_name>\n";
+				echo "List backups with: ls " . $theme_manager->backup_path . "/\n";
+				exit(1);
+			}
+			break;
+
+		case 'list-backups':
+			$backup_dir = $theme_manager->backup_path;
+			if (!is_dir($backup_dir)) {
+				echo "No backup directory found\n";
+				exit(1);
+			}
+			
+			$backups = glob($backup_dir . '/*');
+			if (empty($backups)) {
+				echo "No backups found\n";
+			} else {
+				echo "📦 Available Backups\n";
+				echo "━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━\n";
+				foreach ($backups as $backup) {
+					if (is_dir($backup)) {
+						$name = basename($backup);
+						$size = $theme_manager->formatFileSize($theme_manager->getDirectorySize($backup));
+						$date = date('Y-m-d H:i:s', filemtime($backup));
+						echo "$name\n";
+						echo "    Created: $date\n";
+						echo "    Size: $size\n";
+						echo "\n";
+					}
+				}
+			}
+			break;
+
+		case 'validate-theme':
+			if (isset($argv[2])) {
+				$theme_name = $argv[2];
+				
+				if ($theme_name === 'original') {
+					echo "✅ Original theme is always valid\n";
+				} else {
+					$theme_dir = $theme_manager->getThemePath() . '/' . $theme_name;
+					
+					if (!is_dir($theme_dir)) {
+						echo "❌ Theme directory not found: $theme_dir\n";
+						exit(1);
+					}
+					
+					echo "🔍 Validating theme: $theme_name\n";
+					echo "━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━\n";
+					
+					$valid = true;
+					$required_items = [
+						'header.php' => 'file',
+						'footer.php' => 'file',
+						'includes' => 'directory',
+						'pages' => 'directory'
+					];
+					
+					foreach ($required_items as $item => $type) {
+						$path = $theme_dir . '/' . $item;
+						if (file_exists($path)) {
+							$actual_type = is_dir($path) ? 'directory' : 'file';
+							if ($actual_type === $type) {
+								echo "✅ $item ($type)\n";
+							} else {
+								echo "❌ $item (expected $type, found $actual_type)\n";
+								$valid = false;
+							}
+						} else {
+							echo "❌ $item (missing)\n";
+							$valid = false;
+						}
+					}
+					
+					// Check for theme.json
+					$theme_json = $theme_dir . '/theme.json';
+					if (file_exists($theme_json)) {
+						$json_valid = json_decode(file_get_contents($theme_json), true) !== null;
+						echo ($json_valid ? "✅" : "⚠️") . " theme.json (" . ($json_valid ? "valid" : "invalid JSON") . ")\n";
+					} else {
+						echo "⚠️ theme.json (optional, not found)\n";
+					}
+					
+					// Check for CSS
+					$css_file = $theme_dir . '/css/color_theme.css';
+					if (file_exists($css_file)) {
+						echo "✅ css/color_theme.css (found)\n";
+					} else {
+						echo "⚠️ css/color_theme.css (optional, not found)\n";
+					}
+					
+					echo "\n";
+					if ($valid) {
+						echo "✅ Theme validation passed\n";
+					} else {
+						echo "❌ Theme validation failed - missing required files\n";
+						exit(1);
+					}
+				}
+			} else {
+				echo "Usage: php hestia_theme_manager.php validate-theme <theme_name>\n";
+				echo "Example: validate-theme my-custom-theme\n";
+				exit(1);
+			}
+			break;
+	
             case 'debug':
                 // New debug command to help troubleshoot issues
                 $status = $theme_manager->getThemeStatus();
                 echo "=== THEME MANAGER DEBUG INFO ===\n";
                 echo "Plugin Path: " . $theme_manager->plugin_path . "\n";
-                echo "Templates Path: " . $theme_manager->templates_path . "\n";
-                echo "Theme Path: " . $theme_manager->theme_path . "\n";
+                echo "Templates Path: " . $theme_manager->getTemplatesPath() . "\n";
+                echo "Theme Path: " . $theme_manager->getThemePath() . "\n";
                 echo "Backup Path: " . $theme_manager->backup_path . "\n";
                 echo "\nCurrent State:\n";
                 echo "- Current Theme: " . $status['current_theme'] . "\n";
@@ -1084,39 +1728,55 @@ if (php_sapi_name() === 'cli') {
                     echo "- Target Valid: " . ($status['symlink_valid'] ? 'YES' : 'NO') . "\n";
                 }
                 echo "\nDirectory Contents:\n";
-                if (is_dir($theme_manager->theme_path)) {
-                    $themes = scandir($theme_manager->theme_path);
+                if (is_dir($theme_manager->getThemePath())) {
+                    $themes = scandir($theme_manager->getThemePath());
                     echo "Themes directory contents:\n";
                     foreach ($themes as $item) {
                         if ($item !== '.' && $item !== '..') {
-                            $path = $theme_manager->theme_path . '/' . $item;
+                            $path = $theme_manager->getThemePath() . '/' . $item;
                             echo "  - $item " . (is_dir($path) ? '[DIR]' : '[FILE]') . "\n";
                         }
                     }
                 } else {
-                    echo "Themes directory does not exist: " . $theme_manager->theme_path . "\n";
+                    echo "Themes directory does not exist: " . $theme_manager->getThemePath() . "\n";
                 }
                 echo "\nPermissions:\n";
-                echo "- Templates path perms: " . (file_exists($theme_manager->templates_path) ? decoct(fileperms($theme_manager->templates_path) & 0777) : 'N/A') . "\n";
-                echo "- Theme path perms: " . (file_exists($theme_manager->theme_path) ? decoct(fileperms($theme_manager->theme_path) & 0777) : 'N/A') . "\n";
+                echo "- Templates path perms: " . (file_exists($theme_manager->getTemplatesPath()) ? decoct(fileperms($theme_manager->getTemplatesPath()) & 0777) : 'N/A') . "\n";
+                echo "- Theme path perms: " . (file_exists($theme_manager->getThemePath()) ? decoct(fileperms($theme_manager->getThemePath()) & 0777) : 'N/A') . "\n";
                 break;
                 
             default:
                 echo "Usage: php hestia_theme_manager.php [install|uninstall|apply|css|list|list-css|current|status|debug]\n";
         }
     } else {
-        echo "Hestia Theme Manager v2.0.1 (Enhanced with CSS Theme Support)\n";
-        echo "Usage: php hestia_theme_manager.php [install|uninstall|apply|css|list|list-css|current|status|debug]\n";
-        echo "\nCommands:\n";
-        echo "  install              - Install the theme manager\n";
-        echo "  uninstall            - Uninstall and restore original\n";
-        echo "  apply <theme> [css]  - Apply template theme with optional CSS theme\n";
-        echo "  css <theme>          - Apply only CSS theme\n";
-        echo "  list                 - List available template themes\n";
-        echo "  list-css             - List available CSS themes\n";
-        echo "  current              - Show current active themes\n";
-        echo "  status               - Show detailed system status\n";
-        echo "  debug                - Show debug information\n";
+        echo "Hestia Theme Manager v2.0.1 (Enhanced with Theme Installation)\n";
+		echo "Usage: php hestia_theme_manager.php [command] [arguments]\n";
+		echo "\nCore Commands:\n";
+		echo "  install              - Install the theme manager plugin\n";
+		echo "  uninstall            - Uninstall plugin and restore original\n";
+		echo "  apply <theme> [css]  - Apply template theme with optional CSS theme\n";
+		echo "  css <theme>          - Apply only CSS theme\n";
+		echo "  list                 - List available template themes\n";
+		echo "  list-css             - List available CSS themes\n";
+		echo "  current              - Show current active themes\n";
+		echo "  status               - Show detailed system status\n";
+		echo "  debug                - Show debug information\n";
+		echo "\nTheme Management:\n";
+		echo "  install-theme <source> [name] [--overwrite]  - Install theme from ZIP/directory\n";
+		echo "  uninstall-theme <name> [--force] [--backup] - Uninstall a theme\n";
+		echo "  list-installed       - List installed themes with metadata\n";
+		echo "  theme-info <name>    - Show detailed theme information\n";
+		echo "  validate-theme <name> - Validate theme structure\n";
+		echo "\nBackup Management:\n";
+		echo "  backup-theme <name> [backup_name]  - Create theme backup\n";
+		echo "  list-backups         - List available backups\n";
+		echo "  restore-backup <name> - Restore from backup\n";
+		echo "\nExamples:\n";
+		echo "  hestia-theme install-theme /path/to/theme.zip my-theme\n";
+		echo "  hestia-theme install-theme /path/to/theme-dir --overwrite\n";
+		echo "  hestia-theme uninstall-theme old-theme --backup\n";
+		echo "  hestia-theme list-installed\n";
+		echo "  hestia-theme validate-theme my-theme\n";
     }
 }
 
