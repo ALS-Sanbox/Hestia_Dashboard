@@ -1,7 +1,7 @@
 #!/bin/bash
 
 # Hestia Theme Manager Uninstallation Script
-# Version: 2.0.2
+# Version: 2.0.3
 
 set -e
 
@@ -59,7 +59,7 @@ confirm_uninstall() {
     echo "    • inc/main.php"
     echo "    • login/index.php"
     echo "  - Remove dashboard folder (/list/dashboard/)"
-    echo "  - Remove custom CSS themes"
+    echo "  - Remove all custom CSS themes (*_color.css files)"
     echo "  - Remove themes directory ($THEME_DIR)"
     echo "  - Remove all custom themes"
     echo "  - Delete plugin files and configurations"
@@ -128,9 +128,9 @@ restore_original_patched_files() {
     fi
 }
 
-# Function to remove dashboard folder and custom CSS
-remove_dashboard() {
-    print_status "Removing dashboard folder and custom CSS..."
+# Function to remove dashboard folder and all custom CSS themes
+remove_dashboard_and_css() {
+    print_status "Removing dashboard folder and custom CSS themes..."
     
     # Remove dashboard directory (created by install script)
     DASHBOARD_DIR="/usr/local/hestia/web/list/dashboard"
@@ -139,18 +139,38 @@ remove_dashboard() {
         print_status "Dashboard folder removed: $DASHBOARD_DIR"
     fi
     
-    # Remove custom CSS theme (copied by install script)
-    CSS_THEME="$HESTIA_WEB_DIR/css/themes/custom/glass_color_theme.css"
-    if [ -f "$CSS_THEME" ]; then
-        rm "$CSS_THEME"
-        print_status "Custom CSS theme removed: glass_color_theme.css"
-    fi
-    
-    # Remove custom themes directory if empty (created by install script)
+    # Remove all custom CSS themes (installed by new theme system)
     CUSTOM_THEMES_DIR="$HESTIA_WEB_DIR/css/themes/custom"
-    if [ -d "$CUSTOM_THEMES_DIR" ] && [ -z "$(ls -A $CUSTOM_THEMES_DIR)" ]; then
-        rmdir "$CUSTOM_THEMES_DIR"
-        print_status "Empty custom themes directory removed"
+    if [ -d "$CUSTOM_THEMES_DIR" ]; then
+        local removed_count=0
+        
+        # Remove all *_color.css files (theme CSS files installed by new system)
+        for css_file in "$CUSTOM_THEMES_DIR"/*_color.css; do
+            if [ -f "$css_file" ]; then
+                rm "$css_file"
+                print_status "Removed theme CSS: $(basename "$css_file")"
+                removed_count=$((removed_count + 1))
+            fi
+        done
+        
+        # Also remove the old glass_color_theme.css if it exists (backward compatibility)
+        if [ -f "$CUSTOM_THEMES_DIR/glass_color_theme.css" ]; then
+            rm "$CUSTOM_THEMES_DIR/glass_color_theme.css"
+            print_status "Removed legacy CSS: glass_color_theme.css"
+            removed_count=$((removed_count + 1))
+        fi
+        
+        if [ $removed_count -eq 0 ]; then
+            print_status "No custom CSS theme files found to remove"
+        else
+            print_status "Removed $removed_count custom CSS theme files"
+        fi
+        
+        # Remove custom themes directory if empty
+        if [ -z "$(ls -A $CUSTOM_THEMES_DIR 2>/dev/null)" ]; then
+            rmdir "$CUSTOM_THEMES_DIR"
+            print_status "Empty custom themes directory removed"
+        fi
     fi
 }
 
@@ -311,7 +331,7 @@ show_summary() {
     echo "    - inc/main.php" 
     echo "    - login/index.php"
     print_status "✓ Dashboard folder removed (/list/dashboard/)"
-    print_status "✓ Custom CSS themes removed"
+    print_status "✓ All custom CSS themes removed (*_color.css files)"
     print_status "✓ Themes directory removed ($THEME_DIR)"
     print_status "✓ Plugin files removed"
     print_status "✓ Web interface removed"
@@ -341,7 +361,7 @@ force_uninstall() {
     
     # Skip backup in force mode but still restore original files
     restore_original_patched_files
-    remove_dashboard
+    remove_dashboard_and_css
     remove_themes_directory
     remove_web_interface
     remove_cli_command
@@ -374,7 +394,7 @@ main() {
     confirm_uninstall
     backup_themes
     restore_original_patched_files
-    remove_dashboard
+    remove_dashboard_and_css
     remove_themes_directory
     restore_original_theme
     remove_web_interface
@@ -420,7 +440,7 @@ case "${1:-uninstall}" in
         echo "    • login/index.php"
         echo "  - Remove dashboard folder (/list/dashboard/)"
         echo "  - Remove themes directory ($THEME_DIR)"
-        echo "  - Remove custom CSS themes"
+        echo "  - Remove all custom CSS themes (*_color.css files)"
         echo "  - Backup custom themes to /tmp/"
         echo "  - Remove all plugin files and configurations"
         echo "  - Clean up CLI command (wrapper script)"
