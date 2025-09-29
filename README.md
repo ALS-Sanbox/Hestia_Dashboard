@@ -1,3 +1,7 @@
+#This is the lagest upto date files as I am working on them so use at your own risk as changes are being made accross the board -- WIP
+1. Fix dark glass color settings
+2. work on chaning themes with gui
+   
 # **Installation Instructions**
 
 1. Download and extract the Theme_Manager folder
