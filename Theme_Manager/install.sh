@@ -1,7 +1,7 @@
 #!/bin/bash
 
 # Hestia Theme Manager Installation Script
-# Version: 2.0.2
+# Version: 2.0.3
 
 set -e
 
@@ -82,7 +82,7 @@ create_directories() {
 # Function to backup original files before patching
 backup_original_files() {
     print_status "Backing up original Hestia files..."
-    
+
     # Define files to backup with their source and destination paths
     declare -A FILES_TO_BACKUP=(
         ["/usr/local/hestia/web/index.php"]="$BACKUP_DIR/original-files/web_index.php"
@@ -112,7 +112,7 @@ backup_original_files() {
 # Function to apply patch files
 apply_patch_files() {
     print_status "Applying patch files..."
-    
+
     # Define patch files mapping: patch_file -> target_file
     declare -A PATCH_FILES=(
         ["$SCRIPT_DIR/patch_files/web_index.php"]="/usr/local/hestia/web/index.php"
@@ -164,16 +164,7 @@ create_dashboard() {
         exit 1
     fi
     
-    # Copy dashboard CSS theme
-    if [ -f "$SCRIPT_DIR/glass_color_theme.css" ]; then
-        cp "$SCRIPT_DIR/glass_color_theme.css" "$HESTIA_WEB_DIR/css/themes/custom/"
-        chown hestiaweb:hestiaweb "$HESTIA_WEB_DIR/css/themes/custom/glass_color_theme.css"
-        chmod 644 "$HESTIA_WEB_DIR/css/themes/custom/glass_color_theme.css"
-        print_status "Dashboard CSS theme copied"
-    else
-        print_error "Dashboard CSS theme not found: $SCRIPT_DIR/glass_color_theme.css"
-        exit 1
-    fi
+
     
     # Set proper permissions for dashboard directory
     chown -R hestiaweb:hestiaweb "$DASHBOARD_DIR"
@@ -195,13 +186,58 @@ copy_plugin_files() {
         exit 1
     fi
     
-    # Copy example theme if it exists
+    # Copy themes from themes directory if it exists
     if [ -d "$SCRIPT_DIR/themes" ]; then
         cp -r "$SCRIPT_DIR/themes/"* "$THEME_DIR/" 2>/dev/null || true
-        print_status "Example themes copied"
+        print_status "Themes from installation directory copied"
     fi
     
     print_status "Plugin files installed"
+}
+
+# Function to install theme CSS files
+install_theme_css_files() {
+    print_status "Installing theme CSS files..."
+    
+    local css_files_copied=0
+    
+    # Check if themes directory exists
+    if [ ! -d "$SCRIPT_DIR/themes" ]; then
+        print_status "No themes directory found, skipping CSS installation"
+        return
+    fi
+    
+    # Loop through each theme directory
+    for theme_dir in "$SCRIPT_DIR/themes"/*; do
+        if [ -d "$theme_dir" ]; then
+            theme_name=$(basename "$theme_dir")
+            css_file="$theme_dir/css/color_theme.css"
+            
+            # Check if the theme has a color_theme.css file
+            if [ -f "$css_file" ]; then
+                # Create target filename: themename_color.css
+                target_css_file="$HESTIA_WEB_DIR/css/themes/custom/${theme_name}_color.css"
+                
+                # Copy the CSS file
+                cp "$css_file" "$target_css_file"
+                
+                # Set proper permissions
+                chown hestiaweb:hestiaweb "$target_css_file"
+                chmod 644 "$target_css_file"
+                
+                print_status "Installed CSS theme: ${theme_name}_color.css"
+                css_files_copied=$((css_files_copied + 1))
+            else
+                print_status "No color_theme.css found for theme: $theme_name"
+            fi
+        fi
+    done
+    
+    if [ $css_files_copied -eq 0 ]; then
+        print_status "No theme CSS files were found to install"
+    else
+        print_status "Installed $css_files_copied theme CSS files"
+    fi
 }
 
 # Function to run plugin installation
@@ -241,27 +277,11 @@ EOF
     print_status "CLI command 'hestia-theme' created as wrapper script"
 }
 
-# Function to create example theme structure
-create_example_theme() {
-    print_status "Creating example theme structure..."
+# Function to create theme development guide
+create_theme_guide() {
+    print_status "Creating theme development guide..."
     
-    EXAMPLE_THEME_DIR="$THEME_DIR/example-dark-theme"
-    mkdir -p "$EXAMPLE_THEME_DIR/includes"
-    mkdir -p "$EXAMPLE_THEME_DIR/pages"
-    mkdir -p "$EXAMPLE_THEME_DIR/pages/login"
-    
-    # Create a simple example theme info file
-    cat > "$EXAMPLE_THEME_DIR/theme_info.json" << 'EOF'
-{
-    "name": "Example Dark Theme",
-    "version": "1.0.0",
-    "description": "An example dark theme for Hestia Control Panel",
-    "author": "Theme Manager Plugin",
-    "created": "2024-01-01"
-}
-EOF
-    
-    # Create example README for theme developers
+    # Create README for theme developers
     cat > "$THEME_DIR/README.md" << 'EOF'
 # Hestia Themes Directory
 
@@ -276,8 +296,11 @@ This directory contains custom themes for the Hestia Control Panel.
 
 ```
 my-awesome-theme/
+├── theme.json (recommended config file)
 ├── footer.php
 ├── header.php
+├── css/
+│   └── color_theme.css (theme CSS file)
 ├── includes/
 │   ├── app-footer.php
 │   ├── css.php
@@ -292,27 +315,66 @@ my-awesome-theme/
     └── ... (other login pages)
 ```
 
+## Theme Configuration (theme.json)
+
+Create a theme.json file in your theme directory to specify metadata:
+
+```json
+{
+    "name": "My Custom Theme",
+    "description": "A beautiful custom theme for Hestia",
+    "version": "1.0.0",
+    "css_theme": "dark",
+    "author": "Your Name"
+}
+```
+
 ## Theme Structure Requirements
 
 - Your theme must maintain the same file structure as the original Hestia templates
 - PHP functionality should remain unchanged - only modify HTML/CSS/JS presentation
 - Include all required files or the theme switcher will skip missing files
+- **CSS Theme**: Place your custom CSS in `css/color_theme.css` - this will be automatically installed as `themename_color.css`
 - Test thoroughly before deploying to production
 
-## Installing Themes
+## Managing Themes (CLI Only)
 
-1. Place your theme directory in `/usr/local/hestia/plugins/theme-manager/themes/`
-2. Use the web interface at `/theme-manager.php` or CLI command `hestia-theme apply theme-name`
-3. The plugin will automatically backup current files before applying your theme
+Use the CLI commands to manage themes:
+
+### Installing Themes
+
+```bash
+# List available themes
+hestia-theme list
+hestia-theme list-css
+
+# Show current theme status
+hestia-theme current
+hestia-theme status
+
+# Apply themes
+hestia-theme apply theme-name
+hestia-theme apply theme-name css-theme-name
+hestia-theme css css-theme-name
+
+# Debug information
+hestia-theme debug
+```
+
+1. Place your theme directory in `/usr/local/hestia/web/themes/`
+2. Ensure your theme has a `css/color_theme.css` file for custom styling
+3. Use the CLI command `hestia-theme apply theme-name`
+4. The plugin will automatically install the CSS file as `themename_color.css`
+5. The plugin will automatically backup current files before applying your theme
 
 ## Backup and Restore
 
 - Original files are automatically backed up during plugin installation
 - Current theme is backed up before applying a new theme
-- You can always restore the original Hestia theme
+- You can always restore the original Hestia theme using `hestia-theme apply original`
 EOF
-    
-    print_status "Example theme structure created"
+
+    print_status "Theme development guide created"
 }
 
 # Function to set up logrotate for plugin logs
@@ -343,7 +405,7 @@ show_summary() {
     echo "======================================"
     echo
     print_status "Installation directory: $PLUGIN_DIR"
-    print_status "CLI command: hestia-theme [install|uninstall|apply|list|current]"
+    print_status "CLI command: hestia-theme [install|uninstall|apply|list|current|status|debug]"
     echo
     print_status "Theme directory: $THEME_DIR"
     print_status "Dashboard directory: /usr/local/hestia/web/list/dashboard"
@@ -355,16 +417,32 @@ show_summary() {
     echo "  ✓ inc/main.php - Updated with custom functionality"  
     echo "  ✓ login/index.php - Enhanced login page"
     echo "  ✓ Dashboard created at /list/dashboard/"
-    echo "  ✓ Glass color theme installed"
+    echo "  ✓ Theme CSS files automatically installed"
+    echo
+    print_status "CLI Commands Available:"
+    echo "  hestia-theme list              - List available template themes"
+    echo "  hestia-theme list-css          - List available CSS themes"
+    echo "  hestia-theme current           - Show current active themes"
+    echo "  hestia-theme status            - Show detailed system status"
+    echo "  hestia-theme apply <theme>     - Apply template theme"
+    echo "  hestia-theme apply <theme> <css> - Apply template + CSS theme"
+    echo "  hestia-theme css <theme>       - Apply only CSS theme"
+    echo "  hestia-theme debug             - Show debug information"
     echo
     print_warning "Remember to:"
     echo "  1. Place your custom themes in: $THEME_DIR/"
-    echo "  2. Test themes in a development environment first"
-    echo "  3. Keep backups of your custom themes"
-    echo "  4. Check logs if you encounter any issues"
-    echo "  5. Original files are backed up and can be restored via uninstall"
+    echo "  2. Create theme.json config files for better theme management"
+    echo "  3. Test themes in a development environment first"
+    echo "  4. Keep backups of your custom themes"
+    echo "  5. Check logs if you encounter any issues: $PLUGIN_DIR/logs/"
+    echo "  6. Original files are backed up and can be restored via uninstall"
     echo
     print_status "Installation completed successfully!"
+    echo
+    print_status "Next Steps:"
+    echo "  • Run 'hestia-theme status' to verify installation"
+    echo "  • Run 'hestia-theme debug' if you encounter issues"
+    echo "  • Check $THEME_DIR/README.md for theme development guide"
 }
 
 # Function to check system requirements
@@ -410,7 +488,6 @@ verify_patch_files() {
         "$SCRIPT_DIR/patch_files/main.php"
         "$SCRIPT_DIR/patch_files/login_index.php"
         "$SCRIPT_DIR/dashboard_index.php"
-        "$SCRIPT_DIR/glass_color_theme.css"
     )
     
     for file in "${REQUIRED_PATCH_FILES[@]}"; do
@@ -437,7 +514,7 @@ verify_patch_files() {
         echo "  │   ├── main.php"
         echo "  │   └── login_index.php"
         echo "  ├── dashboard_index.php"
-        echo "  ├── glass_color_theme.css"
+        echo "  ├── themes/ (optional - contains theme directories)"
         echo "  └── hestia_theme_manager.php"
         exit 1
     fi
@@ -449,10 +526,10 @@ verify_patch_files() {
 main() {
     echo "======================================"
     echo "  Hestia Theme Manager Installer"
-    echo "           Version 1.0.0"
+    echo "      Version 2.0.2"
     echo "======================================"
     echo
-    
+
     # Run all checks and installation steps
     check_root
     check_requirements
@@ -464,9 +541,10 @@ main() {
     apply_patch_files
     create_dashboard
     copy_plugin_files
+    install_theme_css_files
     run_plugin_install
     create_cli_command
-    create_example_theme
+    create_theme_guide
     setup_logrotate
     
     # Show installation summary
@@ -487,13 +565,17 @@ case "${1:-install}" in
         echo "  install    Install the theme manager plugin (default)"
         echo "  help       Show this help message"
         echo
+        echo "This version installs only the CLI interface. No web interface is created."
+        echo
         echo "Required Files:"
         echo "  patch_files/list_index.php    - Dashboard-enabled list page"
         echo "  patch_files/main.php          - Modified main include"  
         echo "  patch_files/login_index.php   - Enhanced login page"
         echo "  dashboard_index.php           - Dashboard page"
-        echo "  glass_color_theme.css         - Dashboard theme"
+        echo "  themes/ (optional)            - Theme directories with CSS files"
         echo "  hestia_theme_manager.php      - Main plugin file"
+        echo
+        echo "After installation, use the 'hestia-theme' CLI command to manage themes."
         echo
         ;;
     *)
