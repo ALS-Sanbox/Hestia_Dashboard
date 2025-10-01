@@ -52,66 +52,22 @@ php hestia_theme_manager.php [install|uninstall|apply|css|list|list-css|current|
 ```bash 
 bash uninstall.sh
 ```
+## **Themes Included**
+Dark Glass Theme 
+<img width="1900" height="916" alt="darkglass_theme" src="https://github.com/user-attachments/assets/e3f427c9-21b0-4bf0-80ca-cd702e36ad01" />
+
+Glass Theme
+<img width="1900" height="916" alt="glass_theme" src="https://github.com/user-attachments/assets/0788cdfd-7410-41eb-be50-12c7574c8c4e" />
 
 ## **Theme Creation**
-
 1. Make a copy of the glass theme
 2. Make changes as desired
-3. **Important:** I separated the CSS into two files. The one in the theme folder controls everything except the color settings. I created a separate CSS file and placed it in the `/usr/local/hestia/css/themes/custom` folder and use that filename in the theme.json file to load the color settings. This is done to allow for different color themes.
-
-## **Installation Script Features**
-
-### 1. Patch File Handling
-- Creates backups of original Hestia files before overwriting them
-- Applies patches:
-  - `patch_files/list_index.php` → `/usr/local/hestia/web/list/index.php`
-  - `patch_files/main.php` → `/usr/local/hestia/web/inc/main.php`
-  - `patch_files/login_index.php` → `/usr/local/hestia/web/login/index.php`
-
-### 2. Dashboard Setup
-- Creates `/usr/local/hestia/web/list/dashboard/` directory
-- Copies `dashboard_index.php` to `/usr/local/hestia/web/list/dashboard/index.php`
-- Copies `glass_color_theme.css` to `/usr/local/hestia/web/css/themes/custom/`
-
-### 3. File Verification
-- Added `verify_patch_files()` function to ensure all required files exist before installation
-- Checks for the required directory structure
-
-### 4. Enhanced Backup System
-- Creates `$PLUGIN_DIR/backups/original-files/` for storing original patched files
-- Maintains separate backups for theme files and patched system files
-
-## **Uninstallation Script Features**
-
-### 1. Original File Restoration
-- `restore_original_patched_files()` function restores the backed-up original files
-- Properly restores file permissions and ownership
-
-### 2. Dashboard Cleanup
-- Removes `/usr/local/hestia/web/list/dashboard/` directory
-- Removes custom CSS theme files
-- Cleans up empty directories
-
-### 3. Comprehensive Restoration
-- Restores both theme files and patched system files
-- Maintains the existing theme restoration functionality
-
-## **File Structure**
-```
-Theme_Manager/
-├── install.sh (modified)
-├── uninstall.sh (modified)
-├── patch_files/
-│   ├── list_index.php
-│   ├── main.php
-│   └── login_index.php
-├── dashboard_index.php
-├── glass_color_theme.css
-├── hestia_theme_manager.php
-└── themes/ (optional)
-```
+3. **Important:** I separated the CSS into two files. The one called theme.php is the settings and the one color_theme is all the color settings this allows for other color variants to be created.
 
 ## **Work In Progress (WIP)**
+1. Add the ability to change the dashboard (skin) via GUI -- completish I am going to make it where only the Admin's can change the dashboard and users can change if allowed the CSS Theme
+2. Add the ability to add themes through GUI -- only working with cli currently
+<img width="1843" height="674" alt="Capture" src="https://github.com/user-attachments/assets/262d6439-cfca-422e-964b-98aa6172c9c5" />
 
-1. Add the ability to change the dashboard (skin) via GUI
-2. Add the ability to add themes through GUI
+## **BUGS**
+1. The Hestia way of switching css themes broke and needs to be fixed I think its due to a wrapper script???
