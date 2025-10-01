@@ -1,7 +1,7 @@
 #!/bin/bash
 
 # Hestia Theme Manager Installation Script
-# Version: 2.0.3
+# Version: 2.0.4
 
 set -e
 
@@ -15,8 +15,10 @@ NC='\033[0m' # No Color
 PLUGIN_DIR="/usr/local/hestia/plugins/theme-manager"
 HESTIA_WEB_DIR="/usr/local/hestia/web"
 THEME_DIR="$HESTIA_WEB_DIR/themes"
+BIN_DIR="/usr/local/hestia/bin"
 SCRIPT_DIR="$(cd "$(dirname "${BASH_SOURCE[0]}")" && pwd)"
 BACKUP_DIR="$PLUGIN_DIR/backups"
+SUDOERS_FILE="/etc/sudoers.d/hestia-theme-manager"
 
 # Function to print colored output
 print_status() {
@@ -59,14 +61,13 @@ create_directories() {
     print_status "Creating plugin directories..."
     
     mkdir -p "$PLUGIN_DIR"
-    mkdir -p "$THEME_DIR"        # themes now go under web
+    mkdir -p "$THEME_DIR"
     mkdir -p "$PLUGIN_DIR/backups"
     mkdir -p "$PLUGIN_DIR/config"
     mkdir -p "$PLUGIN_DIR/logs"
-    mkdir -p "$BACKUP_DIR/original-files"  # For backing up original patched files
-    
-    # Create CSS themes directory for custom themes
+    mkdir -p "$BACKUP_DIR/original-files"
     mkdir -p "$HESTIA_WEB_DIR/css/themes/custom"
+    mkdir -p /var/log/hestia
     
     # Set permissions
     chown -R hestiaweb:hestiaweb "$PLUGIN_DIR"
@@ -83,7 +84,6 @@ create_directories() {
 backup_original_files() {
     print_status "Backing up original Hestia files..."
 
-    # Define files to backup with their source and destination paths
     declare -A FILES_TO_BACKUP=(
         ["/usr/local/hestia/web/index.php"]="$BACKUP_DIR/original-files/web_index.php"
         ["/usr/local/hestia/web/list/index.php"]="$BACKUP_DIR/original-files/list_index.php"
@@ -95,10 +95,7 @@ backup_original_files() {
         backup_file="${FILES_TO_BACKUP[$source_file]}"
         
         if [ -f "$source_file" ]; then
-            # Create backup directory if it doesn't exist
             mkdir -p "$(dirname "$backup_file")"
-            
-            # Copy original file to backup location
             cp "$source_file" "$backup_file"
             print_status "Backed up: $(basename "$source_file")"
         else
@@ -113,7 +110,6 @@ backup_original_files() {
 apply_patch_files() {
     print_status "Applying patch files..."
 
-    # Define patch files mapping: patch_file -> target_file
     declare -A PATCH_FILES=(
         ["$SCRIPT_DIR/patch_files/web_index.php"]="/usr/local/hestia/web/index.php"
         ["$SCRIPT_DIR/patch_files/list_index.php"]="/usr/local/hestia/web/list/index.php"
@@ -125,16 +121,10 @@ apply_patch_files() {
         target_file="${PATCH_FILES[$patch_file]}"
         
         if [ -f "$patch_file" ]; then
-            # Create target directory if it doesn't exist
             mkdir -p "$(dirname "$target_file")"
-            
-            # Copy patch file to target location
             cp "$patch_file" "$target_file"
-            
-            # Set proper permissions
             chown hestiaweb:hestiaweb "$target_file"
             chmod 644 "$target_file"
-            
             print_status "Applied patch: $(basename "$patch_file") -> $(basename "$target_file")"
         else
             print_error "Patch file not found: $patch_file"
@@ -149,11 +139,9 @@ apply_patch_files() {
 create_dashboard() {
     print_status "Creating dashboard folder and copying files..."
     
-    # Create dashboard directory
     DASHBOARD_DIR="/usr/local/hestia/web/list/dashboard"
     mkdir -p "$DASHBOARD_DIR"
     
-    # Copy dashboard index file
     if [ -f "$SCRIPT_DIR/dashboard_index.php" ]; then
         cp "$SCRIPT_DIR/dashboard_index.php" "$DASHBOARD_DIR/index.php"
         chown hestiaweb:hestiaweb "$DASHBOARD_DIR/index.php"
@@ -164,9 +152,6 @@ create_dashboard() {
         exit 1
     fi
     
-
-    
-    # Set proper permissions for dashboard directory
     chown -R hestiaweb:hestiaweb "$DASHBOARD_DIR"
     chmod -R 755 "$DASHBOARD_DIR"
     
@@ -177,7 +162,6 @@ create_dashboard() {
 copy_plugin_files() {
     print_status "Installing plugin files..."
     
-    # Copy main plugin file
     if [ -f "$SCRIPT_DIR/hestia_theme_manager.php" ]; then
         cp "$SCRIPT_DIR/hestia_theme_manager.php" "$PLUGIN_DIR/"
         chmod 755 "$PLUGIN_DIR/hestia_theme_manager.php"
@@ -186,7 +170,6 @@ copy_plugin_files() {
         exit 1
     fi
     
-    # Copy themes from themes directory if it exists
     if [ -d "$SCRIPT_DIR/themes" ]; then
         cp -r "$SCRIPT_DIR/themes/"* "$THEME_DIR/" 2>/dev/null || true
         print_status "Themes from installation directory copied"
@@ -201,30 +184,21 @@ install_theme_css_files() {
     
     local css_files_copied=0
     
-    # Check if themes directory exists
     if [ ! -d "$SCRIPT_DIR/themes" ]; then
         print_status "No themes directory found, skipping CSS installation"
         return
     fi
     
-    # Loop through each theme directory
     for theme_dir in "$SCRIPT_DIR/themes"/*; do
         if [ -d "$theme_dir" ]; then
             theme_name=$(basename "$theme_dir")
             css_file="$theme_dir/css/color_theme.css"
             
-            # Check if the theme has a color_theme.css file
             if [ -f "$css_file" ]; then
-                # Create target filename: themename_color.css
                 target_css_file="$HESTIA_WEB_DIR/css/themes/custom/${theme_name}_color.css"
-                
-                # Copy the CSS file
                 cp "$css_file" "$target_css_file"
-                
-                # Set proper permissions
                 chown hestiaweb:hestiaweb "$target_css_file"
                 chmod 644 "$target_css_file"
-                
                 print_status "Installed CSS theme: ${theme_name}_color.css"
                 css_files_copied=$((css_files_copied + 1))
             else
@@ -238,6 +212,164 @@ install_theme_css_files() {
     else
         print_status "Installed $css_files_copied theme CSS files"
     fi
+}
+
+# Function to create backend scripts for web interface
+create_backend_scripts() {
+    print_status "Creating backend scripts for web interface..."
+    
+    # Create v-change-user-theme script
+    cat > "$BIN_DIR/v-change-user-theme" << 'EOF'
+#!/bin/bash
+# Backend script for web interface to change themes
+
+if [ $# -lt 3 ]; then
+    echo "Error: Usage: v-change-user-theme USER TEMPLATE_THEME CSS_THEME"
+    exit 1
+fi
+
+USER="$1"
+TEMPLATE_THEME="$2"
+CSS_THEME="$3"
+
+# Verify user exists
+if [ ! -d "/usr/local/hestia/data/users/$USER" ]; then
+    echo "Error: User $USER does not exist"
+    exit 1
+fi
+
+# Log the operation
+echo "[$(date)] Applying theme for user $USER: Template=$TEMPLATE_THEME, CSS=$CSS_THEME" >> /var/log/hestia/theme-changes.log
+
+# Use the hestia-theme wrapper to apply theme
+/usr/local/hestia/bin/hestia-theme apply "$TEMPLATE_THEME" "$CSS_THEME" 2>&1
+
+EXIT_CODE=$?
+
+if [ $EXIT_CODE -eq 0 ]; then
+    # Update user's theme preference
+    USER_CONF="/usr/local/hestia/data/users/$USER/user.conf"
+    if [ -f "$USER_CONF" ]; then
+        if grep -q "^THEME=" "$USER_CONF"; then
+            sed -i "s|^THEME=.*|THEME='$CSS_THEME'|" "$USER_CONF"
+        else
+            echo "THEME='$CSS_THEME'" >> "$USER_CONF"
+        fi
+        
+        if grep -q "^TEMPLATE_THEME=" "$USER_CONF"; then
+            sed -i "s|^TEMPLATE_THEME=.*|TEMPLATE_THEME='$TEMPLATE_THEME'|" "$USER_CONF"
+        else
+            echo "TEMPLATE_THEME='$TEMPLATE_THEME'" >> "$USER_CONF"
+        fi
+    fi
+    
+    echo "OK"
+    exit 0
+else
+    echo "Error: Failed to apply theme"
+    exit $EXIT_CODE
+fi
+EOF
+    
+    # Create v-change-user-css-theme script
+    cat > "$BIN_DIR/v-change-user-css-theme" << 'EOF'
+#!/bin/bash
+# Backend script for web interface to change CSS theme only
+
+if [ $# -lt 2 ]; then
+    echo "Error: Usage: v-change-user-css-theme USER CSS_THEME"
+    exit 1
+fi
+
+USER="$1"
+CSS_THEME="$2"
+
+# Verify user exists
+if [ ! -d "/usr/local/hestia/data/users/$USER" ]; then
+    echo "Error: User $USER does not exist"
+    exit 1
+fi
+
+# Log the operation
+echo "[$(date)] Applying CSS theme for user $USER: CSS=$CSS_THEME" >> /var/log/hestia/theme-changes.log
+
+# Use the hestia-theme wrapper to apply CSS theme
+/usr/local/hestia/bin/hestia-theme css "$CSS_THEME" 2>&1
+
+EXIT_CODE=$?
+
+if [ $EXIT_CODE -eq 0 ]; then
+    # Update user's theme preference
+    USER_CONF="/usr/local/hestia/data/users/$USER/user.conf"
+    if [ -f "$USER_CONF" ]; then
+        if grep -q "^THEME=" "$USER_CONF"; then
+            sed -i "s|^THEME=.*|THEME='$CSS_THEME'|" "$USER_CONF"
+        else
+            echo "THEME='$CSS_THEME'" >> "$USER_CONF"
+        fi
+    fi
+    
+    echo "OK"
+    exit 0
+else
+    echo "Error: Failed to apply CSS theme"
+    exit $EXIT_CODE
+fi
+EOF
+    
+    # Make scripts executable
+    chmod 755 "$BIN_DIR/v-change-user-theme"
+    chmod 755 "$BIN_DIR/v-change-user-css-theme"
+    chown root:root "$BIN_DIR/v-change-user-theme"
+    chown root:root "$BIN_DIR/v-change-user-css-theme"
+    
+    print_status "Backend scripts created"
+}
+
+# Function to configure sudo permissions
+configure_sudo_permissions() {
+    print_status "Configuring sudo permissions for web interface..."
+    
+    # Determine web server user
+    if id "hestiaweb" &>/dev/null; then
+        WEB_USER="hestiaweb"
+    elif id "www-data" &>/dev/null; then
+        WEB_USER="www-data"
+    else
+        print_warning "Could not determine web server user, defaulting to www-data"
+        WEB_USER="www-data"
+    fi
+    
+    print_status "Detected web server user: $WEB_USER"
+    
+    # Create sudoers file
+    cat > "$SUDOERS_FILE" << EOF
+# Hestia Theme Manager - Allow web user to execute theme change scripts
+$WEB_USER ALL=(root) NOPASSWD: /usr/local/hestia/bin/v-change-user-theme
+$WEB_USER ALL=(root) NOPASSWD: /usr/local/hestia/bin/v-change-user-css-theme
+EOF
+    
+    chmod 440 "$SUDOERS_FILE"
+    
+    # Validate sudoers file
+    if visudo -c -f "$SUDOERS_FILE" &>/dev/null; then
+        print_status "Sudo permissions configured successfully"
+    else
+        print_error "Sudoers configuration validation failed"
+        rm -f "$SUDOERS_FILE"
+        exit 1
+    fi
+}
+
+# Function to create theme change log
+create_theme_log() {
+    print_status "Setting up theme change logging..."
+    
+    touch /var/log/hestia/theme-changes.log
+    chmod 644 /var/log/hestia/theme-changes.log
+    chown hestiaweb:hestiaweb /var/log/hestia/theme-changes.log
+    
+    print_status "Theme change log created: /var/log/hestia/theme-changes.log"
 }
 
 # Function to run plugin installation
@@ -259,29 +391,26 @@ run_plugin_install() {
 create_cli_command() {
     print_status "Setting up CLI command..."
     
-    # Remove existing symlink if it exists
-    if [ -L "/usr/local/bin/hestia-theme" ]; then
-        rm -f "/usr/local/bin/hestia-theme"
-        print_status "Removed existing CLI symlink"
-    fi
-    
-    # Create a proper wrapper script instead of symlink
-    cat > "/usr/local/bin/hestia-theme" << 'EOF'
+    # Copy the wrapper script if it exists in the installation directory
+    if [ -f "$SCRIPT_DIR/hestia-theme" ]; then
+        cp "$SCRIPT_DIR/hestia-theme" "$BIN_DIR/hestia-theme"
+        chmod +x "$BIN_DIR/hestia-theme"
+        print_status "CLI wrapper 'hestia-theme' installed"
+    else
+        # Create a basic wrapper if the full wrapper isn't provided
+        cat > "$BIN_DIR/hestia-theme" << 'EOF'
 #!/bin/bash
 php /usr/local/hestia/plugins/theme-manager/hestia_theme_manager.php "$@"
 EOF
-    
-    # Make the wrapper script executable
-    chmod +x "/usr/local/bin/hestia-theme"
-    
-    print_status "CLI command 'hestia-theme' created as wrapper script"
+        chmod +x "$BIN_DIR/hestia-theme"
+        print_status "CLI command 'hestia-theme' created"
+    fi
 }
 
 # Function to create theme development guide
 create_theme_guide() {
     print_status "Creating theme development guide..."
     
-    # Create README for theme developers
     cat > "$THEME_DIR/README.md" << 'EOF'
 # Hestia Themes Directory
 
@@ -317,8 +446,6 @@ my-awesome-theme/
 
 ## Theme Configuration (theme.json)
 
-Create a theme.json file in your theme directory to specify metadata:
-
 ```json
 {
     "name": "My Custom Theme",
@@ -329,51 +456,18 @@ Create a theme.json file in your theme directory to specify metadata:
 }
 ```
 
-## Theme Structure Requirements
+## Managing Themes
 
-- Your theme must maintain the same file structure as the original Hestia templates
-- PHP functionality should remain unchanged - only modify HTML/CSS/JS presentation
-- Include all required files or the theme switcher will skip missing files
-- **CSS Theme**: Place your custom CSS in `css/color_theme.css` - this will be automatically installed as `themename_color.css`
-- Test thoroughly before deploying to production
+Use CLI commands or the web interface at /list/themes/
 
-## Managing Themes (CLI Only)
-
-Use the CLI commands to manage themes:
-
-### Installing Themes
-
+### CLI Commands:
 ```bash
-# List available themes
-hestia-theme list
-hestia-theme list-css
-
-# Show current theme status
-hestia-theme current
-hestia-theme status
-
-# Apply themes
-hestia-theme apply theme-name
-hestia-theme apply theme-name css-theme-name
-hestia-theme css css-theme-name
-
-# Debug information
-hestia-theme debug
+hestia-theme list              # List available themes
+hestia-theme apply theme-name  # Apply a theme
+hestia-theme current           # Show current theme
 ```
-
-1. Place your theme directory in `/usr/local/hestia/web/themes/`
-2. Ensure your theme has a `css/color_theme.css` file for custom styling
-3. Use the CLI command `hestia-theme apply theme-name`
-4. The plugin will automatically install the CSS file as `themename_color.css`
-5. The plugin will automatically backup current files before applying your theme
-
-## Backup and Restore
-
-- Original files are automatically backed up during plugin installation
-- Current theme is backed up before applying a new theme
-- You can always restore the original Hestia theme using `hestia-theme apply original`
 EOF
-
+    
     print_status "Theme development guide created"
 }
 
@@ -382,7 +476,7 @@ setup_logrotate() {
     print_status "Setting up log rotation..."
     
     cat > "/etc/logrotate.d/hestia-theme-manager" << EOF
-$PLUGIN_DIR/logs/*.log {
+$PLUGIN_DIR/logs/*.log /var/log/hestia/theme-changes.log {
     weekly
     missingok
     rotate 4
@@ -405,57 +499,39 @@ show_summary() {
     echo "======================================"
     echo
     print_status "Installation directory: $PLUGIN_DIR"
-    print_status "CLI command: hestia-theme [install|uninstall|apply|list|current|status|debug]"
-    echo
     print_status "Theme directory: $THEME_DIR"
-    print_status "Dashboard directory: /usr/local/hestia/web/list/dashboard"
-    print_status "Backup directory: $PLUGIN_DIR/backups"
-    print_status "Log directory: $PLUGIN_DIR/logs"
+    print_status "Backend scripts: $BIN_DIR/v-change-user-theme, v-change-user-css-theme"
     echo
-    print_status "Patch files applied:"
-    echo "  ✓ list/index.php - Modified with dashboard integration"
-    echo "  ✓ inc/main.php - Updated with custom functionality"  
-    echo "  ✓ login/index.php - Enhanced login page"
-    echo "  ✓ Dashboard created at /list/dashboard/"
-    echo "  ✓ Theme CSS files automatically installed"
+    print_status "Web Interface:"
+    echo "  Access at: https://your-server/list/themes/"
+    echo "  Dashboard at: https://your-server/list/dashboard/"
     echo
-    print_status "CLI Commands Available:"
-    echo "  hestia-theme list              - List available template themes"
-    echo "  hestia-theme list-css          - List available CSS themes"
-    echo "  hestia-theme current           - Show current active themes"
-    echo "  hestia-theme status            - Show detailed system status"
+    print_status "CLI Commands:"
+    echo "  hestia-theme list              - List available themes"
     echo "  hestia-theme apply <theme>     - Apply template theme"
-    echo "  hestia-theme apply <theme> <css> - Apply template + CSS theme"
-    echo "  hestia-theme css <theme>       - Apply only CSS theme"
-    echo "  hestia-theme debug             - Show debug information"
+    echo "  hestia-theme css <theme>       - Apply CSS theme"
+    echo "  hestia-theme current           - Show current themes"
+    echo "  hestia-theme status            - Show system status"
     echo
-    print_warning "Remember to:"
-    echo "  1. Place your custom themes in: $THEME_DIR/"
-    echo "  2. Create theme.json config files for better theme management"
-    echo "  3. Test themes in a development environment first"
-    echo "  4. Keep backups of your custom themes"
-    echo "  5. Check logs if you encounter any issues: $PLUGIN_DIR/logs/"
-    echo "  6. Original files are backed up and can be restored via uninstall"
+    print_status "Logs:"
+    echo "  Theme manager: $PLUGIN_DIR/logs/"
+    echo "  Theme changes: /var/log/hestia/theme-changes.log"
+    echo
+    print_status "Test the installation:"
+    echo "  sudo -u hestiaweb $BIN_DIR/v-change-user-theme admin original default"
     echo
     print_status "Installation completed successfully!"
-    echo
-    print_status "Next Steps:"
-    echo "  • Run 'hestia-theme status' to verify installation"
-    echo "  • Run 'hestia-theme debug' if you encounter issues"
-    echo "  • Check $THEME_DIR/README.md for theme development guide"
 }
 
 # Function to check system requirements
 check_requirements() {
     print_status "Checking system requirements..."
     
-    # Check PHP
     if ! command -v php &> /dev/null; then
         print_error "PHP is not installed or not in PATH"
         exit 1
     fi
     
-    # Check PHP version (minimum 7.4)
     PHP_VERSION=$(php -r "echo PHP_VERSION_ID;")
     if [ "$PHP_VERSION" -lt 70400 ]; then
         print_error "PHP 7.4 or higher is required"
@@ -482,7 +558,6 @@ verify_patch_files() {
     
     local missing_files=0
     
-    # Check for patch files
     declare -a REQUIRED_PATCH_FILES=(
         "$SCRIPT_DIR/patch_files/list_index.php"
         "$SCRIPT_DIR/patch_files/main.php"
@@ -497,7 +572,6 @@ verify_patch_files() {
         fi
     done
     
-    # Check for patch_files directory
     if [ ! -d "$SCRIPT_DIR/patch_files" ]; then
         print_error "patch_files directory not found: $SCRIPT_DIR/patch_files"
         missing_files=$((missing_files + 1))
@@ -505,17 +579,6 @@ verify_patch_files() {
     
     if [ $missing_files -gt 0 ]; then
         print_error "Missing $missing_files required file(s). Installation cannot continue."
-        echo
-        print_status "Required file structure:"
-        echo "  $(dirname $SCRIPT_DIR)/"
-        echo "  ├── install.sh"
-        echo "  ├── patch_files/"
-        echo "  │   ├── list_index.php"
-        echo "  │   ├── main.php"
-        echo "  │   └── login_index.php"
-        echo "  ├── dashboard_index.php"
-        echo "  ├── themes/ (optional - contains theme directories)"
-        echo "  └── hestia_theme_manager.php"
         exit 1
     fi
     
@@ -526,11 +589,10 @@ verify_patch_files() {
 main() {
     echo "======================================"
     echo "  Hestia Theme Manager Installer"
-    echo "      Version 2.0.2"
+    echo "      Version 2.0.4"
     echo "======================================"
     echo
 
-    # Run all checks and installation steps
     check_root
     check_requirements
     check_hestia
@@ -542,12 +604,14 @@ main() {
     create_dashboard
     copy_plugin_files
     install_theme_css_files
+    create_backend_scripts
+    configure_sudo_permissions
+    create_theme_log
     run_plugin_install
     create_cli_command
     create_theme_guide
     setup_logrotate
     
-    # Show installation summary
     show_summary
 }
 
@@ -557,25 +621,16 @@ case "${1:-install}" in
         main
         ;;
     "help"|"-h"|"--help")
-        echo "Hestia Theme Manager Installer"
+        echo "Hestia Theme Manager Installer v2.0.4"
         echo
         echo "Usage: $0 [install|help]"
         echo
-        echo "Commands:"
-        echo "  install    Install the theme manager plugin (default)"
-        echo "  help       Show this help message"
-        echo
-        echo "This version installs only the CLI interface. No web interface is created."
-        echo
-        echo "Required Files:"
-        echo "  patch_files/list_index.php    - Dashboard-enabled list page"
-        echo "  patch_files/main.php          - Modified main include"  
-        echo "  patch_files/login_index.php   - Enhanced login page"
-        echo "  dashboard_index.php           - Dashboard page"
-        echo "  themes/ (optional)            - Theme directories with CSS files"
-        echo "  hestia_theme_manager.php      - Main plugin file"
-        echo
-        echo "After installation, use the 'hestia-theme' CLI command to manage themes."
+        echo "This installer sets up:"
+        echo "  - Theme manager plugin"
+        echo "  - CLI interface (hestia-theme command)"
+        echo "  - Web interface (/list/themes/)"
+        echo "  - Backend scripts for web interface"
+        echo "  - Dashboard (/list/dashboard/)"
         echo
         ;;
     *)
