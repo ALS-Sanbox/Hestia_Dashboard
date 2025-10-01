@@ -12,11 +12,6 @@
 				<i class="fas fa-arrow-left icon-blue"></i><?= _("Back") ?>
 			</a>
 		</div>
-		<div class="toolbar-buttons">
-			<button type="submit" class="button" form="main-form">
-				<i class="fas fa-floppy-disk icon-purple"></i><?= _("Save") ?>
-			</button>
-		</div>
 	</div>
 </div>
 
@@ -117,34 +112,6 @@
 				</form>
 			</div>
 		</div>
-
-		<!-- Theme Preview/Information -->
-		<div class="card">
-			<div class="card-header">
-				<h2><i class="fas fa-info-circle"></i> <?= _("Theme Information") ?></h2>
-			</div>
-			<div class="card-body">
-				<div class="theme-info-grid">
-					<div class="info-item">
-						<span class="info-label"><?= _("Available Template Themes:") ?></span>
-						<span class="info-value"><?= count($available_themes) ?></span>
-					</div>
-					<div class="info-item">
-						<span class="info-label"><?= _("Available CSS Themes:") ?></span>
-						<span class="info-value"><?= count($available_css_themes) ?></span>
-					</div>
-					<div class="info-item">
-						<span class="info-label"><?= _("Active Template:") ?></span>
-						<span class="info-value"><code><?= htmlspecialchars($current_theme) ?></code></span>
-					</div>
-					<div class="info-item">
-						<span class="info-label"><?= _("Active CSS Theme:") ?></span>
-						<span class="info-value"><code><?= htmlspecialchars($current_css_theme) ?></code></span>
-					</div>
-				</div>
-			</div>
-		</div>
-
 	</div>
 
 <?php else : ?>
