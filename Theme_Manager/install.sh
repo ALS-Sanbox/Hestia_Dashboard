@@ -158,6 +158,29 @@ create_dashboard() {
     print_status "Dashboard setup completed"
 }
 
+# Function to create theme folder and copy files
+create_dashboard() {
+    print_status "Creating theme folder and copying files..."
+    
+    THEME_DIR="/usr/local/hestia/web/list/theme"
+    mkdir -p "$THEME_DIR"
+    
+    if [ -f "$SCRIPT_DIR/theme_index.php" ]; then
+        cp "$SCRIPT_DIR/theme_index.php" "$THEME_DIR/index.php"
+        chown hestiaweb:hestiaweb "$THEME_DIR/index.php"
+        chmod 644 "$THEME_DIR/index.php"
+        print_status "Theme index.php created"
+    else
+        print_error "Theme index file not found: $SCRIPT_DIR/theme_index.php"
+        exit 1
+    fi
+    
+    chown -R hestiaweb:hestiaweb "$THEME_DIR"
+    chmod -R 755 "$THEME_DIR"
+    
+    print_status "Dashboard setup completed"
+}
+
 # Function to copy plugin files
 copy_plugin_files() {
     print_status "Installing plugin files..."
@@ -563,6 +586,7 @@ verify_patch_files() {
         "$SCRIPT_DIR/patch_files/main.php"
         "$SCRIPT_DIR/patch_files/login_index.php"
         "$SCRIPT_DIR/dashboard_index.php"
+        "$SCRIPT_DIR/theme_index.php"
     )
     
     for file in "${REQUIRED_PATCH_FILES[@]}"; do
