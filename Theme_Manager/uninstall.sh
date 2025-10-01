@@ -1,7 +1,7 @@
 #!/bin/bash
 
 # Hestia Theme Manager Uninstallation Script
-# Version: 2.0.3
+# Version: 2.0.4
 
 set -e
 
@@ -15,7 +15,9 @@ NC='\033[0m' # No Color
 PLUGIN_DIR="/usr/local/hestia/plugins/theme-manager"
 HESTIA_WEB_DIR="/usr/local/hestia/web"
 THEME_DIR="$HESTIA_WEB_DIR/themes"
+BIN_DIR="/usr/local/hestia/bin"
 BACKUP_DIR="$PLUGIN_DIR/backups"
+SUDOERS_FILE="/etc/sudoers.d/hestia-theme-manager"
 
 # Function to print colored output
 print_status() {
@@ -55,15 +57,20 @@ confirm_uninstall() {
     echo "  - Restore the original Hestia theme"
     echo "  - Restore original patched files:"
     echo "    • web/index.php"
-    echo "    • list/index.php" 
-    echo "    • inc/main.php"
-    echo "    • login/index.php"
+    echo "    • web/list/index.php" 
+    echo "    • web/inc/main.php"
+    echo "    • web/login/index.php"
     echo "  - Remove dashboard folder (/list/dashboard/)"
+    echo "  - Remove theme folder (/list/theme/)"
     echo "  - Remove all custom CSS themes (*_color.css files)"
     echo "  - Remove themes directory ($THEME_DIR)"
     echo "  - Remove all custom themes"
+    echo "  - Remove backend scripts (v-change-user-theme, v-change-user-css-theme)"
+    echo "  - Remove sudo permissions configuration"
+    echo "  - Remove theme change log"
+    echo "  - Remove CLI command (hestia-theme)"
     echo "  - Delete plugin files and configurations"
-    echo "  - Remove CLI command and wrapper script"
+    echo "  - Remove log rotation configuration"
     echo
     
     read -p "Are you sure you want to uninstall the Theme Manager plugin? (y/N): " -n 1 -r
@@ -128,9 +135,9 @@ restore_original_patched_files() {
     fi
 }
 
-# Function to remove dashboard folder and all custom CSS themes
-remove_dashboard_and_css() {
-    print_status "Removing dashboard folder and custom CSS themes..."
+# Function to remove dashboard and theme folders
+remove_dashboard_and_theme_folders() {
+    print_status "Removing dashboard and theme folders..."
     
     # Remove dashboard directory (created by install script)
     DASHBOARD_DIR="/usr/local/hestia/web/list/dashboard"
@@ -139,7 +146,19 @@ remove_dashboard_and_css() {
         print_status "Dashboard folder removed: $DASHBOARD_DIR"
     fi
     
-    # Remove all custom CSS themes (installed by new theme system)
+    # Remove theme directory (created by install script - duplicate function name bug fix)
+    THEME_INTERFACE_DIR="/usr/local/hestia/web/list/theme"
+    if [ -d "$THEME_INTERFACE_DIR" ]; then
+        rm -rf "$THEME_INTERFACE_DIR"
+        print_status "Theme folder removed: $THEME_INTERFACE_DIR"
+    fi
+}
+
+# Function to remove all custom CSS themes
+remove_custom_css_themes() {
+    print_status "Removing custom CSS themes..."
+    
+    # Remove all custom CSS themes (installed by theme system)
     CUSTOM_THEMES_DIR="$HESTIA_WEB_DIR/css/themes/custom"
     if [ -d "$CUSTOM_THEMES_DIR" ]; then
         local removed_count=0
@@ -152,13 +171,6 @@ remove_dashboard_and_css() {
                 removed_count=$((removed_count + 1))
             fi
         done
-        
-        # Also remove the old glass_color_theme.css if it exists (backward compatibility)
-        if [ -f "$CUSTOM_THEMES_DIR/glass_color_theme.css" ]; then
-            rm "$CUSTOM_THEMES_DIR/glass_color_theme.css"
-            print_status "Removed legacy CSS: glass_color_theme.css"
-            removed_count=$((removed_count + 1))
-        fi
         
         if [ $removed_count -eq 0 ]; then
             print_status "No custom CSS theme files found to remove"
@@ -184,13 +196,64 @@ remove_themes_directory() {
     fi
 }
 
+# Function to remove backend scripts
+remove_backend_scripts() {
+    print_status "Removing backend scripts..."
+    
+    local removed_count=0
+    
+    # Remove v-change-user-theme script
+    if [ -f "$BIN_DIR/v-change-user-theme" ]; then
+        rm "$BIN_DIR/v-change-user-theme"
+        print_status "Removed: v-change-user-theme"
+        removed_count=$((removed_count + 1))
+    fi
+    
+    # Remove v-change-user-css-theme script
+    if [ -f "$BIN_DIR/v-change-user-css-theme" ]; then
+        rm "$BIN_DIR/v-change-user-css-theme"
+        print_status "Removed: v-change-user-css-theme"
+        removed_count=$((removed_count + 1))
+    fi
+    
+    if [ $removed_count -eq 0 ]; then
+        print_status "No backend scripts found to remove"
+    else
+        print_status "Removed $removed_count backend scripts"
+    fi
+}
+
+# Function to remove sudo permissions configuration
+remove_sudo_permissions() {
+    print_status "Removing sudo permissions configuration..."
+    
+    if [ -f "$SUDOERS_FILE" ]; then
+        rm "$SUDOERS_FILE"
+        print_status "Sudo permissions configuration removed: $SUDOERS_FILE"
+    else
+        print_status "No sudo permissions file found"
+    fi
+}
+
+# Function to remove theme change log
+remove_theme_log() {
+    print_status "Removing theme change log..."
+    
+    if [ -f "/var/log/hestia/theme-changes.log" ]; then
+        rm "/var/log/hestia/theme-changes.log"
+        print_status "Theme change log removed"
+    else
+        print_status "No theme change log found"
+    fi
+}
+
 # Function to restore original theme using plugin
 restore_original_theme() {
     print_status "Restoring original Hestia theme..."
     
     cd "$PLUGIN_DIR"
     if [ -f "hestia_theme_manager.php" ]; then
-        php hestia_theme_manager.php uninstall
+        php hestia_theme_manager.php uninstall 2>/dev/null
         
         if [ $? -eq 0 ]; then
             print_status "Original theme restored successfully"
@@ -252,30 +315,20 @@ manual_restore_original() {
     fi
 }
 
-# Function to remove web interface (placeholder for future implementation)
-remove_web_interface() {
-    print_status "Removing web interface..."
-    
-    # Remove any web interface files that might have been created
-    WEB_INTERFACE_FILE="/usr/local/hestia/web/theme-manager.php"
-    if [ -f "$WEB_INTERFACE_FILE" ]; then
-        rm "$WEB_INTERFACE_FILE"
-        print_status "Web interface file removed"
-    fi
-}
-
 # Function to remove CLI command (matches install script - removes wrapper script)
 remove_cli_command() {
     print_status "Removing CLI command..."
     
-    # Remove the wrapper script (created by install script, not a symlink)
-    CLI_WRAPPER="/usr/local/bin/hestia-theme"
+    # Remove the wrapper script (created by install script at /usr/local/hestia/bin/hestia-theme)
+    CLI_WRAPPER="$BIN_DIR/hestia-theme"
     if [ -f "$CLI_WRAPPER" ]; then
         rm "$CLI_WRAPPER"
         print_status "CLI wrapper script removed: $CLI_WRAPPER"
     elif [ -L "$CLI_WRAPPER" ]; then
         rm "$CLI_WRAPPER"
         print_status "CLI symlink removed: $CLI_WRAPPER"
+    else
+        print_status "No CLI command found to remove"
     fi
 }
 
@@ -286,6 +339,8 @@ remove_logrotate() {
     if [ -f "/etc/logrotate.d/hestia-theme-manager" ]; then
         rm "/etc/logrotate.d/hestia-theme-manager"
         print_status "Log rotation configuration removed"
+    else
+        print_status "No log rotation configuration found"
     fi
 }
 
@@ -327,15 +382,18 @@ show_summary() {
     print_status "✓ Original Hestia theme restored"
     print_status "✓ Original patched files restored:"
     echo "    - web/index.php"
-    echo "    - list/index.php"
-    echo "    - inc/main.php" 
-    echo "    - login/index.php"
+    echo "    - web/list/index.php"
+    echo "    - web/inc/main.php" 
+    echo "    - web/login/index.php"
     print_status "✓ Dashboard folder removed (/list/dashboard/)"
+    print_status "✓ Theme folder removed (/list/theme/)"
     print_status "✓ All custom CSS themes removed (*_color.css files)"
     print_status "✓ Themes directory removed ($THEME_DIR)"
+    print_status "✓ Backend scripts removed (v-change-user-theme, v-change-user-css-theme)"
+    print_status "✓ Sudo permissions configuration removed"
+    print_status "✓ Theme change log removed"
     print_status "✓ Plugin files removed"
-    print_status "✓ Web interface removed"
-    print_status "✓ CLI command removed"
+    print_status "✓ CLI command removed (hestia-theme)"
     print_status "✓ Configuration files removed"
     print_status "✓ Log rotation configuration removed"
     echo
@@ -361,9 +419,12 @@ force_uninstall() {
     
     # Skip backup in force mode but still restore original files
     restore_original_patched_files
-    remove_dashboard_and_css
+    remove_dashboard_and_theme_folders
+    remove_custom_css_themes
     remove_themes_directory
-    remove_web_interface
+    remove_backend_scripts
+    remove_sudo_permissions
+    remove_theme_log
     remove_cli_command
     remove_logrotate
     
@@ -384,7 +445,7 @@ force_uninstall() {
 main() {
     echo "======================================"
     echo "  Hestia Theme Manager Uninstaller"
-    echo "           Version 2.0.2"
+    echo "           Version 2.0.4"
     echo "======================================"
     echo
     
@@ -394,10 +455,13 @@ main() {
     confirm_uninstall
     backup_themes
     restore_original_patched_files
-    remove_dashboard_and_css
+    remove_dashboard_and_theme_folders
+    remove_custom_css_themes
     remove_themes_directory
     restore_original_theme
-    remove_web_interface
+    remove_backend_scripts
+    remove_sudo_permissions
+    remove_theme_log
     remove_cli_command
     remove_logrotate
     remove_plugin_directory
@@ -422,7 +486,7 @@ case "${1:-uninstall}" in
         fi
         ;;
     "help"|"-h"|"--help")
-        echo "Hestia Theme Manager Uninstaller"
+        echo "Hestia Theme Manager Uninstaller v2.0.4"
         echo
         echo "Usage: $0 [uninstall|force|help]"
         echo
@@ -435,15 +499,19 @@ case "${1:-uninstall}" in
         echo "  - Restore original Hestia theme"
         echo "  - Restore original patched files:"
         echo "    • web/index.php"
-        echo "    • list/index.php"
-        echo "    • inc/main.php"
-        echo "    • login/index.php"
+        echo "    • web/list/index.php"
+        echo "    • web/inc/main.php"
+        echo "    • web/login/index.php"
         echo "  - Remove dashboard folder (/list/dashboard/)"
+        echo "  - Remove theme folder (/list/theme/)"
         echo "  - Remove themes directory ($THEME_DIR)"
         echo "  - Remove all custom CSS themes (*_color.css files)"
+        echo "  - Remove backend scripts (v-change-user-theme, v-change-user-css-theme)"
+        echo "  - Remove sudo permissions configuration"
+        echo "  - Remove theme change log"
         echo "  - Backup custom themes to /tmp/"
         echo "  - Remove all plugin files and configurations"
-        echo "  - Clean up CLI command (wrapper script)"
+        echo "  - Clean up CLI command (hestia-theme wrapper script)"
         echo "  - Remove log rotation configuration"
         echo
         ;;
