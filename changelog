@@ -29,3 +29,5 @@ v2.0.4
   -Added /list/themes index file for called hestia-theme in the  backend 
   -Added list_theme.php on both glass and dark glass themes for switching thems
   -Update the install script to handle the new themes backend and theme switching
+  -Update the uninstall script to undo all the changes made
+  -updated the side panel to allow user to select a dashboard theme and css theme
