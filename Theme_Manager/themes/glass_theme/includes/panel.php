@@ -39,6 +39,7 @@
         <!-- Tabs -->
         <nav class="sidebar-tabs">
             <ul>
+			<li><a href="/list/themes" class="<?php if (in_array($TAB, ["THEMES"])) echo "active"; ?>"><i class="fa-solid fa-paintbrush"></i> <span class="sidebar-label"><?= _("Themes")?></span></a></li>
 			<li><a href="/list/dashboard/" class="<?php if (in_array($TAB, ["DASHBOARD"])) echo "active"; ?>"><i class="fas fa-gauge"></i> <span class="sidebar-label"><?= _("Dashboard") ?></span></a>
 			</li>
 <?php
