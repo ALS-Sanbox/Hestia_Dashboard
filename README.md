@@ -65,9 +65,10 @@ Glass Theme
 3. **Important:** I separated the CSS into two files. The one called theme.php is the settings and the one color_theme is all the color settings this allows for other color variants to be created.
 
 ## **Work In Progress (WIP)**
-1. Add the ability to change the dashboard (skin) via GUI -- completish I am going to make it where only the Admin's can change the dashboard and users can change if allowed the CSS Theme
+1. When on the user dashboard need to make it where the boxes reflect the users data and their options
 2. Add the ability to add themes through GUI -- only working with cli currently
 <img width="1843" height="674" alt="Capture" src="https://github.com/user-attachments/assets/262d6439-cfca-422e-964b-98aa6172c9c5" />
 
 ## **BUGS**
 1. The Hestia way of switching css themes broke and needs to be fixed I think its due to a wrapper script???
+2. If you choose the original theme you have to go back through the command line to change the dashboard again - original files need the menu link for themes added
