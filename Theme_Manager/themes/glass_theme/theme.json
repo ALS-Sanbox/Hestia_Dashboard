@@ -2,6 +2,20 @@
     "name": "Glass Theme",
     "description": "A beautiful Glass theme",
     "version": "1.0.0",
-    "css_theme": "glass_color_theme",
-    "author": "Afro Lion Studio"
+    "css_theme": "glass_theme_color",
+    "themes": [
+        "glass_theme_color",
+        "glass_darkmode_theme"
+    ],
+    "created": "2025-10-06 12:00:00",
+    "compatibility": {
+        "hestia_version": ">=1.8.0",
+        "php_version": ">=7.4"
+    },
+    "features": [
+        "Modern UI components",
+        "Responsive design",
+        "Dark mode optimized",
+        "Custom color schemes"
+    ]
 }
