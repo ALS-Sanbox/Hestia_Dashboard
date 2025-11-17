@@ -33,21 +33,25 @@
 <!-- Main Theme Selection Form -->
 <?php if ($_SESSION["POLICY_USER_CHANGE_THEME"] !== "no") : ?>
 	<div class="theme-selection-container">
-		
-		<!-- Combined Theme Selection -->
-		<div class="card u-mb20">
-			<div class="card-header">
-				<h2><i class="fas fa-palette"></i> <?= _("Complete Theme Selection") ?></h2>
-				<p class="card-description"><?= _("Select both dashboard template and CSS theme together") ?></p>
-			</div>
-			<div class="card-body">
-				<form id="main-form" method="post">
-					<div class="form-row">
-						<div class="form-group u-mb20">
-							<label for="theme_name" class="form-label">
-								<i class="fas fa-layer-group"></i> <?= _("Dashboard Template Theme") ?>
-							</label>
-							<select class="form-control" name="theme_name" id="theme_name" required>
+<?php
+// Only show menu if the logged-in user is truly admin and not impersonating
+if (
+    isset($_SESSION["user"]) && $_SESSION["user"] === "admin" &&
+    isset($_SESSION["userContext"]) && strtolower($_SESSION["userContext"]) === "admin" &&
+    empty($_SESSION["look"])
+):
+?>
+		<!-- Quick Dashboard Theme Selection -->
+			<div class="card u-mb20">
+				<div class="card-header">
+					<h2><i class="fas fa-magic"></i> <?= _("Dashboard Theme Change") ?></h2>
+					<p class="card-description"><?= _("Change only the dashboard theme without affecting your css template") ?></p>
+				</div>
+				<div class="card-body">
+					<form method="post" class="css-theme-form">
+						<div class="form-inline-group">
+							<label for="dashboard_theme_quick" class="form-label"><?= _("Dashboard Theme") ?></label>
+							<select class="form-control" name="dashboard_theme" id="dashboard_theme_quick">
 								<?php foreach ($available_themes as $theme) : ?>
 									<option value="<?= htmlspecialchars($theme) ?>" 
 										<?= ($theme === $current_theme) ? 'selected' : '' ?>>
@@ -55,38 +59,14 @@
 									</option>
 								<?php endforeach; ?>
 							</select>
-							<small class="form-text text-muted">
-								<?= _("Current template theme:") ?> <strong><?= htmlspecialchars($current_theme) ?></strong>
-							</small>
+							<button type="submit" name="set_dashboard_theme" class="button button-secondary">
+								<i class="fas fa-bolt"></i> <?= _("Apply Dashboard Only") ?>
+							</button>
 						</div>
-
-						<div class="form-group u-mb20">
-							<label for="css_theme_main" class="form-label">
-								<i class="fas fa-paintbrush"></i> <?= _("CSS Theme") ?>
-							</label>
-							<select class="form-control" name="css_theme" id="css_theme_main" required>
-								<?php foreach ($available_css_themes as $css_theme) : ?>
-									<option value="<?= htmlspecialchars($css_theme) ?>" 
-										<?= ($css_theme === $current_css_theme) ? 'selected' : '' ?>>
-										<?= htmlspecialchars(ucwords(str_replace(["-", "_"], " ", $css_theme))) ?>
-									</option>
-								<?php endforeach; ?>
-							</select>
-							<small class="form-text text-muted">
-								<?= _("Current CSS theme:") ?> <strong><?= htmlspecialchars($current_css_theme) ?></strong>
-							</small>
-						</div>
-					</div>
-
-					<div class="form-actions">
-						<button type="submit" name="apply_theme" class="button button-primary">
-							<i class="fas fa-check"></i> <?= _("Apply Both Themes") ?>
-						</button>
-					</div>
-				</form>
-			</div>
-		</div>
-
+					</form>
+				</div>
+			</div>		
+<?php endif; ?>
 		<!-- Quick CSS Theme Selection -->
 		<div class="card u-mb20">
 			<div class="card-header">
@@ -112,8 +92,8 @@
 				</form>
 			</div>
 		</div>
-	</div>
 
+	</div>
 <?php else : ?>
 	<div class="alert alert-info">
 		<i class="fas fa-lock"></i> <?= _("Theme changes are restricted by system policy.") ?>
