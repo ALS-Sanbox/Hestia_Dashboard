@@ -27,22 +27,20 @@ enhanced CSS handling, and expanded CLI capabilities.
 ### Dashboard Overview
 
 ![Dashboard
-Screenshot](https://raw.githubusercontent.com/YourUser/YourRepo/main/screenshots/dashboard.png)
+<img width="1899" height="913" alt="image" src="https://github.com/user-attachments/assets/bec4b34e-2cbf-4ffa-8bea-20e0e46ce4dd" />
+<img width="1906" height="921" alt="image" src="https://github.com/user-attachments/assets/2462b026-e9a5-430e-a336-166fd604c638" />
+<img width="1884" height="916" alt="image" src="https://github.com/user-attachments/assets/17bd67fe-1f86-4ef5-ab89-462f564048fb" />
 
 ### Theme Manager List Page
 
 ![Theme List
-Screenshot](https://raw.githubusercontent.com/YourUser/YourRepo/main/screenshots/theme-list.png)
+<img width="1917" height="915" alt="image" src="https://github.com/user-attachments/assets/eeaa2980-6c90-4147-8120-e6304b1da675" />
+
 
 ### CSS Theme Selection UI
 
 ![CSS Theme
 Screenshot](https://raw.githubusercontent.com/YourUser/YourRepo/main/screenshots/css-themes.png)
-
-### CLI: hestia-theme Commands
-
-![CLI
-Screenshot](https://raw.githubusercontent.com/YourUser/YourRepo/main/screenshots/cli.png)
 
 ------------------------------------------------------------------------
 
@@ -256,3 +254,4 @@ Check logs: - /var/log/hestia/theme-changes.log\
 - /usr/local/hestia/plugins/theme-manager/logs/
 
 ------------------------------------------------------------------------
+
