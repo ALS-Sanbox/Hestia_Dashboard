@@ -1,377 +1,258 @@
-📦 Hestia Theme Manager — Installation & Uninstallation Guide (v2.0.6)
+# 📦 Hestia Theme Manager --- Installation & Uninstallation Guide (v2.0.6)
 
-A complete theme management system for Hestia Control Panel, enabling custom dashboard themes, CSS color themes, a user-friendly web interface, and advanced CLI theme operations.
+![License](https://img.shields.io/badge/License-MIT-green?style=for-the-badge)\
+![HestiaCP](https://img.shields.io/badge/HestiaCP-Compatible-blue?style=for-the-badge)\
+![Version](https://img.shields.io/badge/Version-2.0.6-purple?style=for-the-badge)\
+![Status](https://img.shields.io/badge/Status-Stable-success?style=for-the-badge)\
+![Bash](https://img.shields.io/badge/Bash-Scripts-yellow?style=for-the-badge)\
+![PHP](https://img.shields.io/badge/PHP-7.4+-blueviolet?style=for-the-badge)
 
-Version 2.0.6 includes major improvements to patch verification, CSS installation, backup handling, CLI wrappers, and installation safety.
+A complete and safe **theme management system for Hestia Control
+Panel**, enabling:
 
-✨ Features Overview
-✔ Installation Script (install.sh) — v2.0.6
-1. Robust Patch File Handling
+✔ Full dashboard theming\
+✔ CSS color theme switching\
+✔ Web-based theme UI\
+✔ CLI theme operations\
+✔ Safe backups + patch management\
+✔ Custom theme installer
 
-Backs up all original Hestia files before patching
+Version **2.0.6** introduces improved validation, safer installation,
+enhanced CSS handling, and expanded CLI capabilities.
 
-Applies patched versions of:
+------------------------------------------------------------------------
 
-web_index.php → /usr/local/hestia/web/index.php
+# 📸 Screenshots
 
-list_index.php → /usr/local/hestia/web/list/index.php
+### Dashboard Overview
 
-main.php → /usr/local/hestia/web/inc/main.php
+![Dashboard
+Screenshot](https://raw.githubusercontent.com/YourUser/YourRepo/main/screenshots/dashboard.png)
 
-login_index.php → /usr/local/hestia/web/login/index.php
+### Theme Manager List Page
 
-edit_server.php → /usr/local/hestia/web/templates/pages/edit_server.php
+![Theme List
+Screenshot](https://raw.githubusercontent.com/YourUser/YourRepo/main/screenshots/theme-list.png)
 
-panel.php → /usr/local/hestia/web/templates/includes/panel.php
+### CSS Theme Selection UI
 
-2. Dashboard System Setup
+![CSS Theme
+Screenshot](https://raw.githubusercontent.com/YourUser/YourRepo/main/screenshots/css-themes.png)
 
-Creates: /usr/local/hestia/web/list/dashboard/
+### CLI: hestia-theme Commands
 
-Copies: dashboard_index.php → index.php
+![CLI
+Screenshot](https://raw.githubusercontent.com/YourUser/YourRepo/main/screenshots/cli.png)
 
-Applies correct ownership + permissions
+------------------------------------------------------------------------
 
-3. Theme Manager Page Setup
+# ✨ Features Overview
 
-Creates: /usr/local/hestia/web/list/theme/
+## ✔ Installation Script (install.sh) --- v2.0.6
 
-Copies: theme_index.php → index.php
+### 1. Patch File Handling
 
-4. List Themes Interface
+Backs up and replaces required Hestia system files: - web/index.php\
+- web/list/index.php\
+- web/inc/main.php\
+- web/login/index.php\
+- templates/pages/edit_server.php\
+- templates/includes/panel.php
 
-Copies: list_themes.php → /usr/local/hestia/web/list/list_themes.php
+### 2. Dashboard Setup
 
-Appears in the main list menu
+Creates `/usr/local/hestia/web/list/dashboard/`\
+Copies `dashboard_index.php → index.php`
 
-5. CSS Theme Installer (Improved in 2.0.6)
+### 3. Theme Interface Setup
 
-Installs all CSS theme files from:
-themes/*/css/*.css
+Creates `/usr/local/hestia/web/list/theme/`\
+Copies `theme_index.php → index.php`
 
-Skips:
+### 4. Themes List Page
 
-style.css
+Adds `/usr/local/hestia/web/list/list_themes.php`
 
-color_theme.css
+### 5. CSS Theme Installation (Improved)
 
-Installs everything else, including multi-file themes
+Copies all CSS except: - style.css\
+- color_theme.css
 
-No subfolders — places all into:
+To:
 
-/usr/local/hestia/web/css/themes/custom/
+    /usr/local/hestia/web/css/themes/custom/
 
-6. Pre-Install Verification
+### 6. Verification System
 
-verify_patch_files() ensures:
+Prevent installs if patch files are missing.
 
-All required patch files exist
+### 7. Backup System
 
-Required directories exist
+Backs up original files to:
 
-Dashboard index and theme index exist
+    /usr/local/hestia/plugins/theme-manager/backups/original-files/
 
-Prevents partial installs or breaks
+### 8. Backend Scripts
 
-7. Enhanced Backup System
+Creates: - v-change-user-theme\
+- v-change-user-css-theme
 
-Backs up original Hestia files to:
-
-/usr/local/hestia/plugins/theme-manager/backups/original-files/
-
-
-Backed-up files:
-
-web/index.php
-
-web/list/index.php
-
-web/inc/main.php
-
-web/login/index.php
-
-templates/includes/panel.php
-
-templates/pages/edit_server.php
-
-8. Backend Scripts
-
-Creates:
-
-v-change-user-theme (template + CSS)
-
-v-change-user-css-theme (CSS only)
-
-Both:
-
-Log operations to /var/log/hestia/theme-changes.log
-
-Update user.conf properly
-
-Have matching sudo rules
-
-9. CLI Wrapper Setup
+### 9. CLI Wrapper
 
 Installs:
 
-/usr/local/hestia/bin/hestia-theme
+    /usr/local/hestia/bin/hestia-theme
 
+### 10. Theme Developer Guide
 
-Supports:
+Creates `/usr/local/hestia/web/themes/README.md`
 
-list
+### 11. Logrotate
 
-apply <theme>
+Adds `/etc/logrotate.d/hestia-theme-manager`
 
-css <theme>
+------------------------------------------------------------------------
 
-status
+# 🗑 Uninstallation --- v2.0.6
 
-current
+### Fully restores:
 
-list-css
+-   All original Hestia files\
+-   Dashboard + theme pages\
+-   Custom CSS themes\
+-   CLI wrapper\
+-   Backend scripts\
+-   Logs + rotation configs\
+-   Entire plugin directory
 
-install-theme
+### Backs up themes to:
 
-uninstall-theme
+    /tmp/hestia-themes-backup-YYYYMMDD-HHMMSS/
 
-and more…
+------------------------------------------------------------------------
 
-10. Theme Developer Guide
+# 📁 File Structure
 
-Creates:
+    Theme_Manager/
+    ├── install.sh
+    ├── uninstall.sh
+    ├── wrapper.sh
+    ├── hestia-theme
+    ├── hestia_theme_manager.php
+    ├── dashboard_index.php
+    ├── theme_index.php
+    ├── list_themes.php
+    ├── patch_files/
+    │   ├── web_index.php
+    │   ├── list_index.php
+    │   ├── main.php
+    │   ├── login_index.php
+    │   ├── edit_server.php
+    │   └── panel.php
+    └── themes/
+        └── example-theme/
+            ├── theme.json
+            ├── css/
+            │   ├── dark.css
+            │   └── light.css
+            └── template files...
 
-/usr/local/hestia/web/themes/README.md
+------------------------------------------------------------------------
 
+# 🛠 Installation
 
-Contains instructions for theme builders.
-
-11. Log Rotation
-
-Adds:
-
-/etc/logrotate.d/hestia-theme-manager
-
-12. Safety & Requirement Checks
-
-Must be root
-
-Must have PHP 7.4+
-
-Must detect Hestia installation
-
-Stops on missing files
-
-Graceful error handling
-
-🗑 Uninstallation Script (uninstall.sh) — v2.0.6
-1. Restoration of Original System Files
-
-Restores all files backed up in:
-
-backups/original-files/
-
-
-Restores:
-
-web/index.php
-
-web/list/index.php
-
-web/inc/main.php
-
-web/login/index.php
-
-templates/includes/panel.php
-
-templates/pages/edit_server.php
-
-2. Removes Installed Interfaces
-
-/list/dashboard/
-
-/list/theme/
-
-/list/list_themes.php
-
-3. CSS Theme Cleanup
-
-Removes all custom CSS themes:
-
-*_color.css
-*.css (installed from custom themes)
-
-
-Directory removed if empty:
-
-/usr/local/hestia/web/css/themes/custom/
-
-4. Theme Directory Cleanup
-
-Before deletion, backs up themes to:
-
-/tmp/hestia-themes-backup-YYYYMMDD-HHMMSS/
-
-5. Removes Backend Scripts
-
-v-change-user-theme
-
-v-change-user-css-theme
-
-6. Removes CLI Wrapper
-
-/usr/local/hestia/bin/hestia-theme
-
-7. Log & Config Cleanup
-
-Deletes /var/log/hestia/theme-changes.log
-
-Removes logrotate config
-
-Deletes sudoers file
-
-8. Fully Removes Plugin Directory
-/usr/local/hestia/plugins/theme-manager/
-
-9. Force Mode
-sudo bash uninstall.sh force
-
-
-Skips:
-
-Confirmations
-
-Theme backup
-
-Ideal for automation or resets.
-
-📁 File Structure
-Theme_Manager/
-├── install.sh
-├── uninstall.sh
-├── wrapper.sh
-├── hestia-theme
-├── hestia_theme_manager.php
-├── dashboard_index.php
-├── theme_index.php
-├── list_themes.php
-├── patch_files/
-│   ├── web_index.php
-│   ├── list_index.php
-│   ├── main.php
-│   ├── login_index.php
-│   ├── edit_server.php
-│   └── panel.php
-└── themes/
-    └── example-theme/
-        ├── theme.json
-        ├── css/
-        │   ├── dark.css
-        │   └── light.css
-        └── template files...
-
-🛠 Installation
-
-Run as root:
-
+``` bash
 sudo bash install.sh
+```
 
+------------------------------------------------------------------------
 
-Installs:
+# 🗑 Uninstallation
 
-Theme Manager plugin
+Interactive:
 
-Dashboard interface
-
-Theme manager page
-
-CLI wrapper
-
-Backend scripts
-
-CSS themes
-
-Log rotation
-
-Backups
-
-🗑 Uninstallation
-Interactive mode
+``` bash
 sudo bash uninstall.sh
+```
 
-Force mode (no prompts)
+Force:
+
+``` bash
 sudo bash uninstall.sh force
+```
 
-Help
-sudo bash uninstall.sh help
+------------------------------------------------------------------------
 
-🌐 Web Interface URLs
+# 🌐 Web Interface URLs
 
-Dashboard:
-https://your-server/list/dashboard/
+  Page            URL
+  --------------- -----------------------
+  Dashboard       /list/dashboard/
+  Theme Manager   /list/theme/
+  Themes List     /list/list_themes.php
 
-Theme Manager:
-https://your-server/list/theme/
+------------------------------------------------------------------------
 
-List Themes:
-https://your-server/list/list_themes.php
+# 🧰 CLI Usage
 
-🧰 CLI Usage
+``` bash
 hestia-theme list
 hestia-theme list-css
-hestia-theme apply <template_theme> <css_theme>
-hestia-theme css <css_theme>
+hestia-theme apply <template> <css>
+hestia-theme css <css-theme>
 hestia-theme current
 hestia-theme status
+```
 
-Theme Installation
-hestia-theme install-theme /path/to/theme.zip
-hestia-theme install-theme /path/to/theme-dir
+Theme Installation:
 
-Uninstall a theme
-hestia-theme uninstall-theme <theme-name>
+    hestia-theme install-theme /path/to/theme.zip
+    hestia-theme install-theme /path/to/theme-dir
 
-Backups
-hestia-theme backup-theme <theme-name>
+Theme Removal:
 
-📌 Requirements
+    hestia-theme uninstall-theme <name>
 
-HestiaCP installed
+------------------------------------------------------------------------
 
-PHP 7.4+
+# 📌 Requirements
 
-Bash
+-   HestiaCP\
+-   PHP 7.4+\
+-   Bash\
+-   Root access
 
-Root privileges
+------------------------------------------------------------------------
 
-🛡 Safety Features
+# 🛡 Safety Features
 
-✔ Full backups before modifying anything
-✔ Required-file verification
-✔ All system changes reversible
-✔ Custom themes backed up during uninstall
-✔ Permission and ownership enforced
-✔ Log rotation automatically configured
+✔ Full backups\
+✔ Patch verification\
+✔ Safe rollback\
+✔ Theme backups\
+✔ Permission enforcement\
+✔ Log rotation
 
-📄 Logs
-Type	Path
-Theme changes	/var/log/hestia/theme-changes.log
-Plugin logs	/usr/local/hestia/plugins/theme-manager/logs/
-Original backups	/usr/local/hestia/plugins/theme-manager/backups/
-Uninstall backups	/tmp/hestia-themes-backup-*/
-❓ Support & Troubleshooting
+------------------------------------------------------------------------
+
+# 📄 Logs
+
+  Type               Location
+  ------------------ --------------------------------------------------
+  Theme changes      /var/log/hestia/theme-changes.log
+  Plugin logs        /usr/local/hestia/plugins/theme-manager/logs/
+  Original backups   /usr/local/hestia/plugins/theme-manager/backups/
+  Theme backups      /tmp/hestia-themes-backup-\*
+
+------------------------------------------------------------------------
+
+# ❓ Support
 
 Run:
 
-hestia-theme status
+    hestia-theme status
 
+Check logs: - /var/log/hestia/theme-changes.log\
+- /usr/local/hestia/plugins/theme-manager/logs/
 
-Check logs:
-
-/var/log/hestia/theme-changes.log
-
-/usr/local/hestia/plugins/theme-manager/logs/
-
-To restore Hestia completely:
-
-sudo bash uninstall.sh
+------------------------------------------------------------------------
