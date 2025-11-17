@@ -2,6 +2,21 @@
     "name": "Dark Glass Theme",
     "description": "A beautiful Dark Glass theme",
     "version": "1.0.0",
-    "css_theme": "darkglass_color_theme",
-    "author": "Afro Lion Studio"
+    "author": "Afro Lion Studios",
+    "css_theme": "dark_glass_theme_color",
+    "themes": [
+        "dark_glass_theme_color",
+        "orange_color_theme"
+    ],
+    "created": "2025-10-06 12:00:00",
+    "compatibility": {
+        "hestia_version": ">=1.8.0",
+        "php_version": ">=7.4"
+    },
+    "features": [
+        "Modern UI components",
+        "Responsive design",
+        "Dark mode optimized",
+        "Custom color schemes"
+    ]
 }
