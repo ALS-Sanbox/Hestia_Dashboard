@@ -1,12 +1,33 @@
 V2.0.0
   -first version to be released to the public
+
 V2.0.1
   -Removed the entire createThemeInterface() method that generated the HTML web interface
   -Updated the install() method to skip creating the web interface
   -The plugin now operates purely through CLI commands
+
 v2.0.2
   -Added new Dark glass theme
   -fixed the mobile css for all themes
   -updated the index file to pull the correct data for the dashboards
   -fixed it where the web/index file was patched and restored during install and uninstall
   
+v2.0.3
+  1. Removed the create_example_theme() function entirely
+  2. Replaced it with create_theme_guide() that only creates a README.md file with theme development documentation
+  3. Updated the main installation flow to call create_theme_guide instead of create_example_theme
+  4. Cleaned up duplicate text in the summary section
+  5. Removed duplicate set -e statement at the top
+  6. New Function: install_theme_css_files()
+  7. Removed hard install of glass theme now will loop through and install all themes in theme folder
+  8. Will look in the css folder for color_theme.css for all the color css code and copy that to the hestia custom theme folder for users to select it or other variantes.
+  9. Updated the uninstall of the themes too
+  10. Added ability to install and uninstall themes
+  11. Removed external theme manager interface
+
+v2.0.4
+  -Added /list/themes index file for called hestia-theme in the  backend 
+  -Added list_theme.php on both glass and dark glass themes for switching thems
+  -Update the install script to handle the new themes backend and theme switching
+  -Update the uninstall script to undo all the changes made
+  -updated the side panel to allow user to select a dashboard theme and css theme
