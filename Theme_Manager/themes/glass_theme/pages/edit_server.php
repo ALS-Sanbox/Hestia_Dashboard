@@ -29,7 +29,6 @@
 	<form
 		x-data="{
 			timezone: '<?= $v_timezone ?? "" ?>',
-			theme: '<?= $_SESSION["THEME"] ?>',
 			language: '<?= $_SESSION["LANGUAGE"] ?>',
 			hasSmtpRelay: <?= $v_smtp_relay == "true" ? "true" : "false" ?>,
 			remoteBackupEnabled: <?= !empty($v_backup_remote_adv) ? "true" : "false" ?>,
@@ -70,6 +69,7 @@
 							value="<?= htmlentities(trim($v_hostname, "'")) ?>"
 						>
 					</div>
+
 					<div class="u-mb10">
 						<label for="v_timezone" class="form-label">
 							<?= _("Time Zone") ?>
@@ -82,29 +82,19 @@
 							<?php } ?>
 						</select>
 					</div>
+
+					<!-- 🌈 Appearance Section -->
+					<h3 class="u-mt20 u-mb10">
+						<i class="fas fa-paint-roller u-mr10"></i><?= _("Appearance") ?>
+					</h3>
+
+					<!-- Dashboard Theme -->
 					<div class="u-mb10">
-						<label for="v_theme" class="form-label">
-							<?= _("Theme") ?>
-						</label>
-						<select x-model="theme" class="form-select" name="v_theme" id="v_theme">
-							<?php foreach ($theme as $key => $value) { ?>
-								<option value="<?= $value ?>">
-									<?= $value ?>
-								</option>
-							<?php } ?>
-						</select>
-					</div>
-					<div class="form-check u-mb20">
-						<input
-							class="form-check-input"
-							type="checkbox"
-							name="v_policy_user_change_theme"
-							id="v_policy_user_change_theme"
-							<?= $_SESSION["POLICY_USER_CHANGE_THEME"] == "no" ? "checked" : "" ?>
-						>
-						<label for="v_policy_user_change_theme">
-							<?= _("Set as selected theme for all users") ?>
-						</label>
+						<div class="themeNote">
+								<?= _("All Theme settings were moved to ") ?><a href="/list/themes" class="button button-secondary">
+								<i class="fa-solid fa-palette"></i><?= _("Themes") ?>
+								</a>
+						</div>
 					</div>
 					<div class="u-mb10">
 						<label for="v_language" class="form-label"><?= _("Default Language") ?></label>
@@ -116,6 +106,7 @@
 							<?php } ?>
 						</select>
 					</div>
+
 					<div class="form-check u-mb10">
 						<input
 							class="form-check-input"
@@ -127,6 +118,7 @@
 							<?= _("Set as default language for all users") ?>
 						</label>
 					</div>
+
 					<div class="form-check">
 						<input
 							class="form-check-input"
@@ -141,6 +133,16 @@
 					</div>
 				</div>
 			</details>
+
+			<!-- Flash message output -->
+			<?php
+			if (!empty($_SESSION['flash'])) {
+				$type = $_SESSION['flash']['type'] === 'success' ? 'alert-success' : 'alert-danger';
+				echo "<div class='alert $type u-mb15'>{$_SESSION['flash']['message']}</div>";
+				unset($_SESSION['flash']);
+			}
+			?>
+
 
 			<!-- Updates section -->
 			<details class="box-collapse u-mb10">

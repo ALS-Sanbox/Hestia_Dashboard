@@ -1,0 +1,51 @@
+V2.0.0
+  -first version to be released to the public
+
+V2.0.1
+  -Removed the entire createThemeInterface() method that generated the HTML web interface
+  -Updated the install() method to skip creating the web interface
+  -The plugin now operates purely through CLI commands
+
+v2.0.2
+  -Added new Dark glass theme
+  -fixed the mobile css for all themes
+  -updated the index file to pull the correct data for the dashboards
+  -fixed it where the web/index file was patched and restored during install and uninstall
+  
+v2.0.3
+  1. Removed the create_example_theme() function entirely
+  2. Replaced it with create_theme_guide() that only creates a README.md file with theme development documentation
+  3. Updated the main installation flow to call create_theme_guide instead of create_example_theme
+  4. Cleaned up duplicate text in the summary section
+  5. Removed duplicate set -e statement at the top
+  6. New Function: install_theme_css_files()
+  7. Removed hard install of glass theme now will loop through and install all themes in theme folder
+  8. Will look in the css folder for color_theme.css for all the color css code and copy that to the hestia custom theme folder for users to select it or other variantes.
+  9. Updated the uninstall of the themes too
+  10. Added ability to install and uninstall themes
+  11. Removed external theme manager interface
+
+v2.0.4
+  -Added /list/themes index file for called hestia-theme in the  backend 
+  -Added list_theme.php on both glass and dark glass themes for switching thems
+  -Update the install script to handle the new themes backend and theme switching
+  -Update the uninstall script to undo all the changes made
+  -updated the side panel to allow user to select a dashboard theme and css theme
+
+v2.0.5
+  - Made it where only themes listed in the json file are shown as sections in the dropdown list
+  - Updated the install script to copy all the themes except the style.css theme
+  - Updated the include files to use the style.css file rename
+  - Updated the theme manager to reflect the css theme filtering
+
+v2.0.6
+  -Fixed the theme installation process so all CSS files are copied correctly, including .min.css variants, while still skipping style.css and color_theme.css.
+  -Updated install_theme_css_files() to include non-color CSS themes and ensure they install into /css/themes/custom without being filtered out.
+  -Fixed duplicate function name bug create_dashboard() that overwrote the theme setup function — renamed appropriately internally.
+  -Updated backend logic to correctly load CSS themes assigned in each theme’s theme.json file.
+  -Improved reliability of the v-change-user-css-theme backend script for backwards compatibility with older versions.
+  -Fixed installer patching to ensure the web, list, login, and main index files apply correctly on all systems.
+  -Updated uninstall script to properly remove all CSS themes regardless of naming variations (dark, light, minified, etc.).
+  -Updated plugin file copying to ensure all theme directories are installed, not just partial copies.
+  -Improved error handling and status output across install/uninstall for clearer debugging.
+  -Added compatibility improvements for theme dropdown filtering and dashboard/theme switching from the UI.
