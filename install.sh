@@ -192,9 +192,9 @@ copy_list_themes() {
     LIST_DIR="/usr/local/hestia/web/list"
     
     if [ -f "$SCRIPT_DIR/list_themes.php" ]; then
-        cp "$SCRIPT_DIR/list_themes.php" "$LIST_DIR/list_themes.php"
-        chown hestiaweb:hestiaweb "$LIST_DIR/list_themes.php"
-        chmod 644 "$LIST_DIR/list_themes.php"
+        cp "$SCRIPT_DIR/list_themes.php" "$LIST_DIR/themes/index.php"
+        chown hestiaweb:hestiaweb "$LIST_DIR/index.php"
+        chmod 644 "$LIST_DIR/index.php"
         print_status "list_themes.php copied successfully"
     else
         print_error "list_themes.php file not found: $SCRIPT_DIR/list_themes.php"
