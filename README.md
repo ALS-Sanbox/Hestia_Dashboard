@@ -271,6 +271,9 @@ make the theme active
 ``` bash
 hestia-theme install-theme Theme_Manager/themes/dark_glass_theme
 ```
+#BUG FIX
+You will need to run this command to fix the theme UI list
+cp `/usr/local/hestia/web/list/theme/index.php` to `/usr/local/hestia/web/list/themes/index.php`
 
 
 
