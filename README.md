@@ -258,4 +258,19 @@ Check logs: - /var/log/hestia/theme-changes.log\
 
 ------------------------------------------------------------------------
 
+#How to install
+
+Untar the file
+`tar -xzvf Theme_Manager_v2.0.6.tar.gz`
+
+then install a theme
+``` bash
+hestia-theme install-theme Theme_Manager/themes/dark_glass_theme
+```
+make the theme active
+``` bash
+hestia-theme install-theme Theme_Manager/themes/dark_glass_theme
+```
+
+
 
