@@ -47,6 +47,9 @@ Screenshot](https://raw.githubusercontent.com/YourUser/YourRepo/main/screenshots
 # ✨ Features Overview
 
 ## ✔ Installation Script (install.sh) --- v2.0.6
+``` bash
+sudo bash install.sh
+```
 
 ### 1. Patch File Handling
 
@@ -254,4 +257,5 @@ Check logs: - /var/log/hestia/theme-changes.log\
 - /usr/local/hestia/plugins/theme-manager/logs/
 
 ------------------------------------------------------------------------
+
 
