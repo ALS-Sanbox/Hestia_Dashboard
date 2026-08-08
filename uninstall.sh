@@ -146,6 +146,21 @@ restore_original_patched_files() {
         chmod 755 /usr/local/hestia/bin/v-list-sys-config
         print_status "Restored: v-list-sys-config"
     fi
+
+    # Same for the two core controllers patched in-place (v_theme /
+    # v_user_theme null-guard) - restore from backup if we touched them
+    if [ -f "$BACKUP_DIR/original-files/edit_server_controller.php" ]; then
+        cp "$BACKUP_DIR/original-files/edit_server_controller.php" /usr/local/hestia/web/edit/server/index.php
+        chown root:root /usr/local/hestia/web/edit/server/index.php
+        chmod 644 /usr/local/hestia/web/edit/server/index.php
+        print_status "Restored: edit/server/index.php"
+    fi
+    if [ -f "$BACKUP_DIR/original-files/edit_user_controller.php" ]; then
+        cp "$BACKUP_DIR/original-files/edit_user_controller.php" /usr/local/hestia/web/edit/user/index.php
+        chown root:root /usr/local/hestia/web/edit/user/index.php
+        chmod 644 /usr/local/hestia/web/edit/user/index.php
+        print_status "Restored: edit/user/index.php"
+    fi
 }
 
 # Function to remove dashboard and theme folders

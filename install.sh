@@ -724,6 +724,52 @@ backup_existing_plugin() {
     fi
 }
 
+# Function to guard two known-crashing checks in Hestia's own core
+# edit/server and edit/user controllers. Both do
+# `if ($_POST["v_theme"] != $_SESSION["THEME"])` unconditionally, on every
+# GET or POST to the page - not just on form submit. $_POST["v_theme"] is
+# null on a GET, and on PHP 8.3 passing null into quoteshellarg() (a
+# non-nullable string|int|float param) throws a fatal TypeError instead of
+# the old implicit-null-to-string coercion. Since our theme system keeps
+# $_SESSION["THEME"]/$_SESSION["userTheme"] populated with a real value far
+# more often than stock Hestia would, this crash - which reproduces on any
+# plain page load, not just after actually changing a theme - becomes very
+# easy to hit. Not our bug originally, but our own theme switching directly
+# increases how often it fires, so patching it here is worthwhile even
+# though these are core files we don't otherwise track.
+#
+# A minimal in-place sed patch (not a full file copy) is used deliberately,
+# since these controllers are large and change often between Hestia
+# releases - copying the whole file would drift stale immediately.
+patch_theme_null_guards() {
+    print_status "Checking for a known PHP 8.3 crash in Hestia's theme-field handling..."
+
+    ES_CTRL="/usr/local/hestia/web/edit/server/index.php"
+    EU_CTRL="/usr/local/hestia/web/edit/user/index.php"
+
+    if [ -f "$ES_CTRL" ] && grep -qF 'if ($_POST["v_theme"] != $_SESSION["THEME"]) {' "$ES_CTRL"; then
+        cp "$ES_CTRL" "$BACKUP_DIR/original-files/edit_server_controller.php"
+        sed -i 's/if (\$_POST\["v_theme"\] != \$_SESSION\["THEME"\]) {/if (!empty(\$_POST["v_theme"]) \&\& \$_POST["v_theme"] != \$_SESSION["THEME"]) {/' "$ES_CTRL"
+        if php -l "$ES_CTRL" >/dev/null 2>&1; then
+            print_status "Patched edit/server/index.php: guarded v_theme against the null TypeError"
+        else
+            print_warning "Failed to patch edit/server/index.php safely; restoring original"
+            cp "$BACKUP_DIR/original-files/edit_server_controller.php" "$ES_CTRL"
+        fi
+    fi
+
+    if [ -f "$EU_CTRL" ] && grep -qF 'if ($_POST["v_user_theme"] != $_SESSION["userTheme"]) {' "$EU_CTRL"; then
+        cp "$EU_CTRL" "$BACKUP_DIR/original-files/edit_user_controller.php"
+        sed -i 's/if (\$_POST\["v_user_theme"\] != \$_SESSION\["userTheme"\]) {/if (!empty(\$_POST["v_user_theme"]) \&\& \$_POST["v_user_theme"] != \$_SESSION["userTheme"]) {/' "$EU_CTRL"
+        if php -l "$EU_CTRL" >/dev/null 2>&1; then
+            print_status "Patched edit/user/index.php: guarded v_user_theme against the null TypeError"
+        else
+            print_warning "Failed to patch edit/user/index.php safely; restoring original"
+            cp "$BACKUP_DIR/original-files/edit_user_controller.php" "$EU_CTRL"
+        fi
+    fi
+}
+
 # Function to verify patch files exist
 verify_patch_files() {
     print_status "Verifying patch files..."
@@ -780,6 +826,7 @@ main() {
 	copy_list_themes
     copy_plugin_files
     install_theme_css_files
+    patch_theme_null_guards
     create_backend_scripts
     configure_sudo_permissions
     create_theme_log
