@@ -1,3 +1,8 @@
+v2.1.1 (nightly)
+  - Fixed dashboard/theme pages rendering as a mix of default Hestia styling and the theme's look, missing card/grid layout entirely. Root cause: each theme's style.css (the structural stylesheet, referenced as /templates/css/style.css through the templates symlink) was being 404'd by the panel's own nginx config, which blanket-blocks everything under /templates/ to stop PHP source files from being downloaded. Only the color-theme CSS was ever actually loading.
+  - Fixed the active dark_glass_theme's includes/css.php, which was separately missing the <link> tag for style.css entirely (a second, unrelated bug stacked on top of the nginx one)
+  - install.sh now patches the panel nginx config on install to allow theme css/js/image assets through while leaving the PHP-source block intact; uninstall.sh restores the original nginx.conf
+
 v2.1.0
   - Added "Alt Dashboard" toggle to Configure Server > Basic Options, switching the post-login landing page between the stock Users list and the plugin's custom /list/dashboard/
   - Fixed /list/dashboard/ so it actually renders: deployed the missing list_dashboard.php page template, fixed an undefined-variable bug in dashboard_index.php, and pulled real RAM/CPU/uptime/service data
