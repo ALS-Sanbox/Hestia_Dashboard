@@ -14,7 +14,16 @@ NC='\033[0m' # No Color
 # Configuration
 PLUGIN_DIR="/usr/local/hestia/plugins/theme-manager"
 HESTIA_WEB_DIR="/usr/local/hestia/web"
+# THEME_DIR: the "active" themes directory - what web/templates symlinks
+# into once a theme is applied, and what HestiaThemeManager::getAvailableThemes()
+# scans. GALLERY_DIR is a separate, distinct directory - the browsable
+# collection under web/list/theme/ that also holds each theme's own
+# edit_server.php/edit_user.php/panel.php copies (needed so switching
+# Dashboard Theme doesn't strand anyone without those controls). These two
+# used to collide (both assigned to the same THEME_DIR variable, one of
+# them via an unintended reassignment) - keep them as separate variables.
 THEME_DIR="$HESTIA_WEB_DIR/themes"
+GALLERY_DIR="$HESTIA_WEB_DIR/list/theme"
 BIN_DIR="/usr/local/hestia/bin"
 SCRIPT_DIR="$(cd "$(dirname "${BASH_SOURCE[0]}")" && pwd)"
 BACKUP_DIR="$PLUGIN_DIR/backups"
@@ -95,7 +104,17 @@ backup_original_files() {
     
     for source_file in "${!FILES_TO_BACKUP[@]}"; do
         backup_file="${FILES_TO_BACKUP[$source_file]}"
-        
+
+        # Never overwrite an existing backup: if this script has already
+        # run once before (reinstall, update, retry), the file on disk is
+        # already our patched version, not the true original. Backing it
+        # up again would silently destroy the one copy of the real
+        # original, leaving uninstall.sh with nothing genuine to restore.
+        if [ -f "$backup_file" ]; then
+            print_status "Backup already exists, leaving it alone: $(basename "$backup_file")"
+            continue
+        fi
+
         if [ -f "$source_file" ]; then
             mkdir -p "$(dirname "$backup_file")"
             cp "$source_file" "$backup_file"
@@ -104,7 +123,7 @@ backup_original_files() {
             print_warning "Original file not found: $source_file"
         fi
     done
-    
+
     print_status "Original files backed up"
 }
 
@@ -212,24 +231,22 @@ create_dashboard() {
 create_theme() {
     print_status "Creating theme folder and copying files..."
 
-    THEME_DIR="/usr/local/hestia/web/list/theme"
-    mkdir -p "$THEME_DIR"
+    mkdir -p "$GALLERY_DIR"
 
     # Also deploy each bundled theme into the "active" themes directory
     # (web/themes/) so it's immediately selectable from the Dashboard Theme
     # dropdown, not just browsable in the gallery. Doesn't touch the
     # templates symlink itself - no theme is force-applied on install.
-    ACTIVE_THEMES_DIR="/usr/local/hestia/web/themes"
-    mkdir -p "$ACTIVE_THEMES_DIR"
+    mkdir -p "$THEME_DIR"
     if [ -d "$SCRIPT_DIR/themes" ]; then
         for theme_dir in "$SCRIPT_DIR/themes"/*/; do
             [ -d "$theme_dir" ] || continue
             theme_name=$(basename "$theme_dir")
-            if [ ! -e "$ACTIVE_THEMES_DIR/$theme_name" ]; then
-                cp -r "$theme_dir" "$ACTIVE_THEMES_DIR/$theme_name"
-                chown -R hestiaweb:hestiaweb "$ACTIVE_THEMES_DIR/$theme_name"
-                find "$ACTIVE_THEMES_DIR/$theme_name" -type d -exec chmod 755 {} \;
-                find "$ACTIVE_THEMES_DIR/$theme_name" -type f -exec chmod 644 {} \;
+            if [ ! -e "$THEME_DIR/$theme_name" ]; then
+                cp -r "$theme_dir" "$THEME_DIR/$theme_name"
+                chown -R hestiaweb:hestiaweb "$THEME_DIR/$theme_name"
+                find "$THEME_DIR/$theme_name" -type d -exec chmod 755 {} \;
+                find "$THEME_DIR/$theme_name" -type f -exec chmod 644 {} \;
                 print_status "Deployed theme to active themes dir: $theme_name"
             fi
 
@@ -266,8 +283,9 @@ copy_plugin_files() {
     fi
     
     if [ -d "$SCRIPT_DIR/themes" ]; then
-        cp -r "$SCRIPT_DIR/themes/"* "$THEME_DIR/" 2>/dev/null || true
-        print_status "Themes from installation directory copied"
+        mkdir -p "$GALLERY_DIR"
+        cp -r "$SCRIPT_DIR/themes/"* "$GALLERY_DIR/" 2>/dev/null || true
+        print_status "Themes from installation directory copied to gallery"
     fi
     
     print_status "Plugin files installed"
@@ -294,21 +312,25 @@ install_theme_css_files() {
                 continue
             fi
             
-            # Find all CSS files in the theme's css directory
-            find "$css_dir" -maxdepth 1 -type f -name "*.css" | while read -r css_file; do
+            # Find all CSS files in the theme's css directory. Read via
+            # process substitution rather than piping into the while loop -
+            # a pipe would run the loop body in a subshell, silently
+            # discarding every css_files_copied increment once the loop
+            # ends (the counter would always read back as 0).
+            while read -r css_file; do
                 filename=$(basename "$css_file")
                 css_name="${filename%.css}"
-                
+
                 # Skip style.css, and color_theme.css
                 if [ "$filename" = "style.css" ] || \
                    [ "$filename" = "color_theme.css" ]; then
                     print_status "Skipping CSS file: $filename"
                     continue
                 fi
-                
+
                 # Copy to custom themes directory
                 target_css_file="$HESTIA_WEB_DIR/css/themes/custom/${css_name}.css"
-                
+
                 if cp "$css_file" "$target_css_file"; then
                     chown hestiaweb:hestiaweb "$target_css_file"
                     chmod 644 "$target_css_file"
@@ -317,7 +339,7 @@ install_theme_css_files() {
                 else
                     print_warning "Failed to copy CSS file: $filename"
                 fi
-            done
+            done < <(find "$css_dir" -maxdepth 1 -type f -name "*.css")
         fi
     done
     
@@ -474,17 +496,21 @@ EOF
 # Function to configure sudo permissions
 configure_sudo_permissions() {
     print_status "Configuring sudo permissions for web interface..."
-    
-    # Determine web server user
+
+    # Determine web server user. Hestia's own panel PHP-FPM pool always
+    # runs as hestiaweb (verified: it's what serves the actual control
+    # panel, distinct from any per-site php-fpm pool) - if that user
+    # doesn't exist, this isn't a standard Hestia install, and silently
+    # falling back to www-data would grant root-via-sudo access to
+    # whatever unrelated, differently-privileged user that happens to be
+    # on this box. Fail loudly instead of guessing.
     if id "hestiaweb" &>/dev/null; then
         WEB_USER="hestiaweb"
-    elif id "www-data" &>/dev/null; then
-        WEB_USER="www-data"
     else
-        print_warning "Could not determine web server user, defaulting to www-data"
-        WEB_USER="www-data"
+        print_error "Expected Hestia web user 'hestiaweb' not found - this doesn't look like a standard Hestia install. Refusing to guess a fallback user for a root-via-sudo grant."
+        exit 1
     fi
-    
+
     print_status "Detected web server user: $WEB_USER"
     
     # Create sudoers file
@@ -520,11 +546,13 @@ create_theme_log() {
 # Function to run plugin installation
 run_plugin_install() {
     print_status "Running plugin installation..."
-    
+
     cd "$PLUGIN_DIR"
-    php hestia_theme_manager.php install
-    
-    if [ $? -eq 0 ]; then
+    # Must be the condition of the if itself, not a bare statement followed
+    # by a separate `[ $? -eq 0 ]` check - under `set -e`, a failing bare
+    # statement exits the script immediately, so that later check (and its
+    # print_error message) would never actually run.
+    if php hestia_theme_manager.php install; then
         print_status "Plugin installation completed successfully"
     else
         print_error "Plugin installation failed"
@@ -693,6 +721,11 @@ backup_existing_plugin() {
         BACKUP_NAME="theme-manager-backup-$(date +%Y%m%d-%H%M%S)"
         print_status "Creating backup: $BACKUP_NAME"
         mv "$PLUGIN_DIR" "/tmp/$BACKUP_NAME"
+        # Hestia is a multi-tenant box by design - /tmp is shared across
+        # every local user on the server. Restrict to owner-only so other
+        # tenants' shell users can't read this plugin's logs/config while
+        # it sits here.
+        chmod 700 "/tmp/$BACKUP_NAME"
         print_status "Existing plugin backed up to /tmp/$BACKUP_NAME"
     fi
 }

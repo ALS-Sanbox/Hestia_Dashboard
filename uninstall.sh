@@ -88,11 +88,16 @@ confirm_uninstall() {
 backup_themes() {
     if [ -d "$THEME_DIR" ]; then
         print_status "Backing up custom themes..."
-        
+
         BACKUP_THEMES_DIR="/tmp/hestia-themes-backup-$(date +%Y%m%d-%H%M%S)"
         mkdir -p "$BACKUP_THEMES_DIR"
+        # Hestia is a multi-tenant box by design - /tmp is shared across
+        # every local user on the server. Restrict to owner-only before
+        # copying anything into it, so other tenants' shell users can't
+        # read these theme files while they sit here.
+        chmod 700 "$BACKUP_THEMES_DIR"
         cp -r "$THEME_DIR" "$BACKUP_THEMES_DIR/"
-        
+
         print_status "Themes backed up to: $BACKUP_THEMES_DIR"
         echo "  You can restore these themes after reinstalling the plugin"
     fi
@@ -303,9 +308,11 @@ restore_original_theme() {
     
     cd "$PLUGIN_DIR"
     if [ -f "hestia_theme_manager.php" ]; then
-        php hestia_theme_manager.php uninstall 2>/dev/null
-        
-        if [ $? -eq 0 ]; then
+        # Must be the condition of the if itself, not a bare statement
+        # followed by a separate `[ $? -eq 0 ]` check - under `set -e`, a
+        # failing bare statement exits the script immediately, so the
+        # manual-restore fallback below would never actually run.
+        if php hestia_theme_manager.php uninstall 2>/dev/null; then
             print_status "Original theme restored successfully"
         else
             print_warning "Failed to restore original theme using plugin"
