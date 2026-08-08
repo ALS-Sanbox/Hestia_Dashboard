@@ -1,7 +1,7 @@
 <?php
 /**
  * Hestia Theme Manager Plugin
- * Version: 2.0.5
+ * Version: 2.1.0
  * Description: Allows switching between different UI themes for Hestia Control Panel using symlinks and CSS themes
  * Author: Custom Plugin
  * Features: Theme whitelist filtering for CSS themes per dashboard theme

@@ -1,0 +1,46 @@
+{
+    "name": "Maxi Theme",
+    "description": "A theme made by MaxiZamorano",
+    "version": "1.0.0",
+    "css_theme": "maxtheme-dark-blue",
+    "themes": [
+        "maxtheme-dark-blue",
+        "maxtheme-dark-indigo",
+        "maxtheme-dark-red",
+        "maxtheme-dark-teal",
+        "maxtheme-dark-cyan",
+        "maxtheme-dark-orange",
+        "maxtheme-dark-rose",
+        "maxtheme-dark-zinc",
+        "maxtheme-dark-gray",
+        "maxtheme-dark-pink",
+        "maxtheme-dark-sky",
+        "maxtheme-dark-green",
+        "maxtheme-dark-purple",
+        "maxtheme-dark-stone",
+        "maxtheme-light-blue",
+        "maxtheme-light-cyan",
+        "maxtheme-light-gray",
+        "maxtheme-light-green",
+        "maxtheme-light-indigo",
+        "maxtheme-light-orange",
+        "maxtheme-light-pink",
+        "maxtheme-light-purple",
+        "maxtheme-light-red",
+        "maxtheme-light-rose",
+        "maxtheme-light-sky",
+        "maxtheme-light-stone",
+        "maxtheme-light-teal",
+        "maxtheme-light-zinc"
+    ],
+    "created": "2024-12-02 12:00:00",
+    "compatibility": {
+        "hestia_version": ">=1.8.0",
+        "php_version": ">=7.4"
+    },
+    "features": [
+        "Modern UI components",
+        "Includes 28 color variants",
+        "Optimized for Hestia Theme Manager v2.x"
+    ]
+}

@@ -1,0 +1,100 @@
+/* ==========================
+   DARK MODE THEME VARIABLES
+   ========================== */
+:root[data-theme="dark"] {
+    --hestia-primary: #3b82f6;
+    --hestia-secondary: #94a3b8;
+    --hestia-success: #34d399;
+    --hestia-warning: #fbbf24;
+    --hestia-error: #f87171;
+    --hestia-info: #22d3ee;
+    --hestia-bg: #111827;         /* background */
+    --hestia-card-bg: #1f2937;    /* cards / panels */
+    --hestia-text: #f3f4f6;       /* main text */
+    --hestia-text-muted: #9ca3af; /* muted text */
+    --hestia-border: #374151;     /* subtle borders */
+
+    --card-background: #1f2937;
+    --border-color: #374151;
+    --text-primary: #f3f4f6;
+    --text-secondary: #9ca3af;
+    --info-background: #1e293b;
+    --code-background: #374151;
+}
+
+/* ==========================
+   DARK MODE COMPONENT FIXES
+   ========================== */
+body[data-theme="dark"] {
+    background-color: var(--hestia-bg);
+    color: var(--hestia-text);
+}
+
+.sidebar,
+.sidebar-submenu {
+    background: #1f2937;
+    color: #fff;
+}
+
+.sidebar a,
+.sidebar-submenu a {
+    color: #fff;
+}
+
+.sidebar-menu a:hover,
+.sidebar-tabs a:hover {
+    background: #374151;
+}
+
+.sidebar-tabs a.active {
+    background: var(--hestia-primary);
+}
+
+.sidebar-submenu {
+    border-left: 1px solid rgba(255, 255, 255, 0.1);
+}
+
+.sidebar-submenu a:hover {
+    background: #4b5563;
+}
+
+/* Cards & sections */
+.stats-card,
+.activity-section,
+.status-section,
+.card {
+    background: var(--hestia-card-bg);
+    border: 1px solid var(--hestia-border);
+    color: var(--hestia-text);
+}
+
+.card-header h2,
+.card-description,
+.form-label,
+.form-actions,
+.info-label,
+.info-value {
+    color: var(--hestia-text);
+}
+
+.info-item {
+    background: var(--info-background);
+}
+
+.info-value code {
+    background: var(--code-background);
+    color: var(--hestia-text);
+}
+
+/* Alerts */
+.alert-danger {
+    background-color: rgba(248, 113, 113, 0.1);
+    border: 1px solid rgba(248, 113, 113, 0.3);
+    color: #fca5a5;
+}
+
+.alert-success {
+    background-color: rgba(16, 185, 129, 0.1);
+    border: 1px solid rgba(16, 185, 129, 0.3);
+    color: #6ee7b7;
+}

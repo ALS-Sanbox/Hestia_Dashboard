@@ -32,11 +32,6 @@ foreach ($wanted as $key => $label) {
     }
 }
 
-// Keep user stats if you still need them
-exec(HESTIA_CMD . "v-list-user-stats $user json", $output, $return_var);
-$panel[$user] = json_decode(implode("", $output), true);
-unset($output);
-
 //Get system quick stats
 exec(HESTIA_CMD . "v-list-sys-info json", $output, $return_var);
 $sysinfoRaw = json_decode(implode("", $output), true);
@@ -58,8 +53,8 @@ $load1 = (float) ($loadParts[0] ?? 0);
 $cpuUsage = $cpuCores > 0 ? round(($load1 / $cpuCores) * 100, 1) . "%" : "N/A";
 
 // RAM usage
-$totalRam = (int) ($sysinfo['MEMORY'] ?? 0);   // total MB
-$usedRam  = (int) ($sysinfo['RAM'] ?? 0);      // used MB
+$memInfo = trim(shell_exec("free -m | awk '/^Mem:/{print $2, $3}'"));
+[$totalRam, $usedRam] = array_pad(array_map('intval', explode(" ", $memInfo)), 2, 0);
 $ramUsagePercent = $totalRam > 0 ? round(($usedRam / $totalRam) * 100, 1) : 0;
 $ramUsageFormatted = "{$usedRam}MB / {$totalRam}MB ({$ramUsagePercent}%)";
 
@@ -85,4 +80,4 @@ if (is_array($logs)) {
     ];
 }
 
-render_page($user, $template, "list_dashboard", compact('services', 'recentLogs', 'ramUsageFormatted'));
+render_page($user, $TAB, "list_dashboard");

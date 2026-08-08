@@ -136,6 +136,16 @@ restore_original_patched_files() {
     else
         print_warning "No original files were restored - backups may not exist"
     fi
+
+    # v-list-sys-config is a core Hestia binary we patch in-place (not
+    # copied wholesale) to expose ALT_DASHBOARD; restore it separately
+    # since it needs root:root/755 rather than the web files' ownership
+    if [ -f "$BACKUP_DIR/original-files/v-list-sys-config" ]; then
+        cp "$BACKUP_DIR/original-files/v-list-sys-config" /usr/local/hestia/bin/v-list-sys-config
+        chown root:root /usr/local/hestia/bin/v-list-sys-config
+        chmod 755 /usr/local/hestia/bin/v-list-sys-config
+        print_status "Restored: v-list-sys-config"
+    fi
 }
 
 # Function to remove dashboard and theme folders

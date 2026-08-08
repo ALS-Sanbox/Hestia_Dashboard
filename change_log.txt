@@ -1,3 +1,14 @@
+v2.1.0
+  - Added "Alt Dashboard" toggle to Configure Server > Basic Options, switching the post-login landing page between the stock Users list and the plugin's custom /list/dashboard/
+  - Fixed /list/dashboard/ so it actually renders: deployed the missing list_dashboard.php page template, fixed an undefined-variable bug in dashboard_index.php, and pulled real RAM/CPU/uptime/service data
+  - Added a "Dashboard Theme" dropdown (Configure Server, shown when Alt Dashboard is on) to switch the active template set (dark_glass_theme / glass_theme / maxtheme / original) without leaving the page
+  - Renamed the Basic Options "Theme" dropdown to "Color Theme" and wired it to getFilteredCssThemes() so it only lists color variants that belong to the currently active Dashboard Theme
+  - Applied the same Dashboard Theme / Color Theme filtering to the Edit User page's per-user "Theme" dropdown
+  - New dashboard_toggle.php endpoint handles all of the above as instant-apply AJAX calls (alt_dashboard, dashboard_theme, css_theme, user_theme actions), so none of it depends on patching Hestia's core edit/server or edit/user controllers
+  - Fixed v-change-user-css-theme: it previously called `hestia-theme css` internally, which applied a user's personal theme choice server-wide for every user. It now only updates that one user's own user.conf, matching what "personal theme" is supposed to mean
+  - Registered glass_theme and maxtheme into the active themes directory (previously only dark_glass_theme was actually selectable; the others existed only in the theme gallery)
+  - Patched Hestia's v-list-sys-config to expose the new ALT_DASHBOARD key into $_SESSION - it silently dropped any config key not on its hardcoded whitelist
+
 V2.0.0
   -first version to be released to the public
 

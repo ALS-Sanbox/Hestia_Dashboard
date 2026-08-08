@@ -155,10 +155,53 @@ create_dashboard() {
         print_error "Dashboard index file not found: $SCRIPT_DIR/dashboard_index.php"
         exit 1
     fi
-    
+
+    if [ -f "$SCRIPT_DIR/dashboard_toggle.php" ]; then
+        cp "$SCRIPT_DIR/dashboard_toggle.php" "$DASHBOARD_DIR/toggle.php"
+        chown hestiaweb:hestiaweb "$DASHBOARD_DIR/toggle.php"
+        chmod 644 "$DASHBOARD_DIR/toggle.php"
+        print_status "Dashboard toggle.php created"
+    else
+        print_error "Dashboard toggle file not found: $SCRIPT_DIR/dashboard_toggle.php"
+        exit 1
+    fi
+
+    # Deploy the dashboard page body into the active template set so
+    # render_page() can find it at templates/pages/list_dashboard.php
+    if [ -f "$SCRIPT_DIR/themes/dark_glass_theme/pages/list_dashboard.php" ] && [ -e "/usr/local/hestia/web/templates/pages" ]; then
+        cp "$SCRIPT_DIR/themes/dark_glass_theme/pages/list_dashboard.php" "/usr/local/hestia/web/templates/pages/list_dashboard.php"
+        chown hestiaweb:hestiaweb "/usr/local/hestia/web/templates/pages/list_dashboard.php"
+        chmod 644 "/usr/local/hestia/web/templates/pages/list_dashboard.php"
+        print_status "Dashboard page template deployed"
+    fi
+
+    # Default the Alt Dashboard toggle to off so existing installs keep
+    # landing on the stock Users list until an admin opts in
+    if ! grep -q "^ALT_DASHBOARD=" /usr/local/hestia/conf/hestia.conf 2>/dev/null; then
+        /usr/local/hestia/bin/v-change-sys-config-value ALT_DASHBOARD false >/dev/null 2>&1 || true
+    fi
+
+    # v-change-sys-config-value will happily persist any key, but
+    # v-list-sys-config only exposes a hardcoded whitelist of keys back into
+    # $_SESSION on each page load. Without ALT_DASHBOARD in that whitelist,
+    # the toggle saves but is never actually seen by the redirect logic.
+    # Patch it in once, idempotently, without clobbering the rest of the
+    # (core Hestia, not ours) script.
+    SYS_CONFIG_BIN="/usr/local/hestia/bin/v-list-sys-config"
+    if [ -f "$SYS_CONFIG_BIN" ] && ! grep -q '"ALT_DASHBOARD"' "$SYS_CONFIG_BIN"; then
+        cp "$SYS_CONFIG_BIN" "$BACKUP_DIR/original-files/v-list-sys-config"
+        sed -i 's/\(\s*\)"ANTISPAM_SYSTEM": /\1"ALT_DASHBOARD": "'"'"'$ALT_DASHBOARD'"'"'",\n\1"ANTISPAM_SYSTEM": /' "$SYS_CONFIG_BIN"
+        if bash -n "$SYS_CONFIG_BIN" 2>/dev/null && grep -q '"ALT_DASHBOARD"' "$SYS_CONFIG_BIN"; then
+            print_status "Patched v-list-sys-config to expose ALT_DASHBOARD"
+        else
+            print_warning "Failed to patch v-list-sys-config; restoring original"
+            cp "$BACKUP_DIR/original-files/v-list-sys-config" "$SYS_CONFIG_BIN"
+        fi
+    fi
+
     chown -R hestiaweb:hestiaweb "$DASHBOARD_DIR"
     chmod -R 755 "$DASHBOARD_DIR"
-    
+
     print_status "Dashboard setup completed"
 }
 
@@ -166,7 +209,7 @@ create_dashboard() {
 create_theme() {
     print_status "Creating theme folder and copying files..."
     
-    THEME_DIR="/usr/local/hestia/web/list/themes"
+    THEME_DIR="/usr/local/hestia/web/list/theme"
     mkdir -p "$THEME_DIR"
     
     if [ -f "$SCRIPT_DIR/theme_index.php" ]; then
@@ -181,7 +224,27 @@ create_theme() {
     
     chown -R hestiaweb:hestiaweb "$THEME_DIR"
     chmod -R 755 "$THEME_DIR"
-    
+
+    # Also deploy each bundled theme into the "active" themes directory
+    # (web/themes/) so it's immediately selectable from the Dashboard Theme
+    # dropdown, not just browsable in the gallery. Doesn't touch the
+    # templates symlink itself - no theme is force-applied on install.
+    ACTIVE_THEMES_DIR="/usr/local/hestia/web/themes"
+    mkdir -p "$ACTIVE_THEMES_DIR"
+    if [ -d "$SCRIPT_DIR/themes" ]; then
+        for theme_dir in "$SCRIPT_DIR/themes"/*/; do
+            [ -d "$theme_dir" ] || continue
+            theme_name=$(basename "$theme_dir")
+            if [ ! -e "$ACTIVE_THEMES_DIR/$theme_name" ]; then
+                cp -r "$theme_dir" "$ACTIVE_THEMES_DIR/$theme_name"
+                chown -R hestiaweb:hestiaweb "$ACTIVE_THEMES_DIR/$theme_name"
+                find "$ACTIVE_THEMES_DIR/$theme_name" -type d -exec chmod 755 {} \;
+                find "$ACTIVE_THEMES_DIR/$theme_name" -type f -exec chmod 644 {} \;
+                print_status "Deployed theme to active themes dir: $theme_name"
+            fi
+        done
+    fi
+
     print_status "Dashboard setup completed"
 }
 
@@ -337,12 +400,16 @@ EOF
     # Create v-change-user-css-theme script
     cat > "$BIN_DIR/v-change-user-css-theme" << 'EOF'
 #!/bin/bash
-# info: updates user CSS theme (backward compatible)
+# info: updates a single user's personal CSS theme preference
 # options: USER CSS_THEME
 #
-# example: v-change-user-css-theme admin dark
+# example: v-change-user-css-theme admin dark_glass_theme_color
 #
-# Changes only the CSS theme for a specified user.
+# Changes the CSS theme for the specified user only. This does NOT touch
+# the system-wide default THEME value in hestia.conf, so other users are
+# never affected by one user picking their own personal color theme.
+# (Earlier versions of this script also called `hestia-theme css`, which
+# applied the change server-wide - that was a bug, not a feature.)
 
 #----------------------------------------------------------#
 #                Variables & Functions                     #
@@ -379,51 +446,32 @@ is_object_unsuspended 'user' 'USER' "$user"
 check_hestia_demo_mode
 
 #----------------------------------------------------------#
-#                Theme Manager Compatibility               #
+#                       Action                             #
 #----------------------------------------------------------#
 
 LOG_FILE="/var/log/hestia/theme-changes.log"
-PLUGIN_WRAPPER="/usr/local/hestia/bin/hestia-theme"
 USER_CONF="/usr/local/hestia/data/users/$user/user.conf"
 
-# Verify user config exists
 if [ ! -f "$USER_CONF" ]; then
     echo "Error: User $user configuration not found."
     exit 1
 fi
 
-# Try to apply CSS theme through the new plugin system
-if [ -x "$PLUGIN_WRAPPER" ]; then
-    echo "[$(date)] Applying CSS theme for user $user: CSS=$css_theme" >> "$LOG_FILE"
-    "$PLUGIN_WRAPPER" css "$css_theme" 2>&1
-    EXIT_CODE=$?
+# Update only this user's own theme preference. main.php's top_panel()
+# loads this into $_SESSION['userTheme'] on that user's next page load,
+# and includes/css.php prefers userTheme over the server-wide THEME - so
+# this is enough to change what they see without affecting anyone else.
+if grep -q "^THEME=" "$USER_CONF"; then
+    sed -i "s|^THEME=.*|THEME='$css_theme'|" "$USER_CONF"
 else
-    echo "[$(date)] hestia-theme wrapper not found, skipping plugin call" >> "$LOG_FILE"
-    EXIT_CODE=0
+    echo "THEME='$css_theme'" >> "$USER_CONF"
 fi
 
-#----------------------------------------------------------#
-#                       Action                             #
-#----------------------------------------------------------#
+echo "[$(date)] Applied personal CSS theme for user $user: CSS=$css_theme" >> "$LOG_FILE"
+$BIN/v-log-action "$user" "Info" "System" "Applied personal CSS theme (CSS: $css_theme)."
 
-if [ $EXIT_CODE -eq 0 ]; then
-    # Ensure THEME key exists in user.conf
-    if grep -q "^THEME=" "$USER_CONF"; then
-        sed -i "s|^THEME=.*|THEME='$css_theme'|" "$USER_CONF"
-    else
-        echo "THEME='$css_theme'" >> "$USER_CONF"
-    fi
-
-    # Log the operation via Hestia
-    $BIN/v-log-action "$user" "Info" "System" "Applied CSS theme to user interface (CSS: $css_theme)."
-
-    echo "OK"
-    exit 0
-else
-    echo "Error: Failed to apply CSS theme"
-    exit $EXIT_CODE
-fi
-
+echo "OK"
+exit 0
 EOF
     
     # Make scripts executable
@@ -672,6 +720,7 @@ verify_patch_files() {
         "$SCRIPT_DIR/patch_files/main.php"
         "$SCRIPT_DIR/patch_files/login_index.php"
         "$SCRIPT_DIR/dashboard_index.php"
+        "$SCRIPT_DIR/dashboard_toggle.php"
         "$SCRIPT_DIR/theme_index.php"
     )
     
@@ -699,7 +748,7 @@ verify_patch_files() {
 main() {
     echo "======================================"
     echo "  Hestia Theme Manager Installer"
-    echo "      Version 2.0.6"
+    echo "      Version 2.1.0"
     echo "======================================"
     echo
 
