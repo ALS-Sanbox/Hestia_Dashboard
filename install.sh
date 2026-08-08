@@ -205,25 +205,15 @@ create_dashboard() {
     print_status "Dashboard setup completed"
 }
 
-# Function to create theme folder and copy files
+# Function to create the theme gallery directory and deploy bundled themes.
+# The gallery itself (web/list/theme/) used to also serve a browsable
+# "Themes" page (theme_index.php) - that's gone; Dashboard Theme and Color
+# Theme selection now live directly on Configure Server and Edit User.
 create_theme() {
     print_status "Creating theme folder and copying files..."
-    
+
     THEME_DIR="/usr/local/hestia/web/list/theme"
     mkdir -p "$THEME_DIR"
-    
-    if [ -f "$SCRIPT_DIR/theme_index.php" ]; then
-        cp "$SCRIPT_DIR/theme_index.php" "$THEME_DIR/index.php"
-        chown hestiaweb:hestiaweb "$THEME_DIR/index.php"
-        chmod 644 "$THEME_DIR/index.php"
-        print_status "Theme index.php created"
-    else
-        print_error "Theme index file not found: $SCRIPT_DIR/theme_index.php"
-        exit 1
-    fi
-    
-    chown -R hestiaweb:hestiaweb "$THEME_DIR"
-    chmod -R 755 "$THEME_DIR"
 
     # Also deploy each bundled theme into the "active" themes directory
     # (web/themes/) so it's immediately selectable from the Dashboard Theme
@@ -261,23 +251,6 @@ create_theme() {
     fi
 
     print_status "Dashboard setup completed"
-}
-
-# Function to copy list_themes.php to web/list directory
-copy_list_themes() {
-    print_status "Copying list_themes.php to web/list directory..."
-    
-    LIST_DIR="/usr/local/hestia/web/list"
-    
-    if [ -f "$SCRIPT_DIR/list_themes.php" ]; then
-        cp "$SCRIPT_DIR/list_themes.php" "$LIST_DIR/list_themes.php"
-        chown hestiaweb:hestiaweb "$LIST_DIR/list_themes.php"
-        chmod 644 "$LIST_DIR/list_themes.php"
-        print_status "list_themes.php copied successfully"
-    else
-        print_error "list_themes.php file not found: $SCRIPT_DIR/list_themes.php"
-        exit 1
-    fi
 }
 
 # Function to copy plugin files
@@ -630,7 +603,7 @@ my-awesome-theme/
 
 ## Managing Themes
 
-Use CLI commands or the web interface at /list/themes/
+Use CLI commands, or the Dashboard Theme / Color Theme controls on Configure Server (/edit/server/, with Alt Dashboard enabled) and Edit User (/edit/user/)
 
 ### CLI Commands:
 ```bash
@@ -675,7 +648,7 @@ show_summary() {
     print_status "Backend scripts: $BIN_DIR/v-change-user-theme, v-change-user-css-theme"
     echo
     print_status "Web Interface:"
-    echo "  Access at: https://your-server/list/themes/"
+    echo "  Dashboard Theme / Color Theme: https://your-server/edit/server/ (with Alt Dashboard enabled), and https://your-server/edit/user/"
     echo "  Dashboard at: https://your-server/list/dashboard/"
     echo
     print_status "CLI Commands:"
@@ -782,7 +755,6 @@ verify_patch_files() {
         "$SCRIPT_DIR/patch_files/login_index.php"
         "$SCRIPT_DIR/dashboard_index.php"
         "$SCRIPT_DIR/dashboard_toggle.php"
-        "$SCRIPT_DIR/theme_index.php"
     )
     
     for file in "${REQUIRED_PATCH_FILES[@]}"; do
@@ -809,7 +781,7 @@ verify_patch_files() {
 main() {
     echo "======================================"
     echo "  Hestia Theme Manager Installer"
-    echo "      Version 2.1.0"
+    echo "      Version 2.1.1"
     echo "======================================"
     echo
 
@@ -823,7 +795,6 @@ main() {
     apply_patch_files
     create_dashboard
 	create_theme
-	copy_list_themes
     copy_plugin_files
     install_theme_css_files
     patch_theme_null_guards
@@ -844,14 +815,14 @@ case "${1:-install}" in
         main
         ;;
     "help"|"-h"|"--help")
-        echo "Hestia Theme Manager Installer v2.1.0"
+        echo "Hestia Theme Manager Installer v2.1.1"
         echo
         echo "Usage: $0 [install|help]"
         echo
         echo "This installer sets up:"
         echo "  - Theme manager plugin"
         echo "  - CLI interface (hestia-theme command)"
-        echo "  - Web interface (/list/themes/)"
+        echo "  - Dashboard Theme / Color Theme controls on Configure Server and Edit User"
         echo "  - Backend scripts for web interface"
         echo "  - Dashboard (/list/dashboard/)"
         echo

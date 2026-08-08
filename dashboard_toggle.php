@@ -62,6 +62,21 @@ if ($action === "css_theme") {
 
     exec(HESTIA_CMD . "hestia-theme css " . quoteshellarg($css_theme), $output, $return_var);
     unset($output);
+
+    if ($return_var === 0) {
+        // hestia-theme runs as a separate CLI process (via sudo), so it
+        // can persist the new server-wide default to hestia.conf but
+        // can't touch *this* request's own $_SESSION. Without this, the
+        // change is saved correctly but invisible on reload to whoever
+        // made it, if they have a personal userTheme override set (it
+        // always takes priority over the server default - see
+        // includes/css.php) - which is exactly what looked like "changing
+        // the color theme doesn't work" for any theme not already
+        // matching that override.
+        $_SESSION["THEME"] = $css_theme;
+        unset($_SESSION["userTheme"]);
+    }
+
     echo json_encode(["ok" => $return_var === 0, "value" => $css_theme]);
     exit();
 }
@@ -101,6 +116,16 @@ if ($action === "user_theme") {
         $return_var,
     );
     unset($output);
+
+    // Same reasoning as the css_theme action above: v-change-user-css-theme
+    // runs as a separate CLI process and can't touch this request's own
+    // session. If you're changing your own theme (the common case), update
+    // it here so the reload actually shows the new color.
+    if ($return_var === 0 && $target_user === $effective_user) {
+        $_SESSION["userTheme"] = $css_theme;
+        $_SESSION["THEME"] = $css_theme;
+    }
+
     echo json_encode(["ok" => $return_var === 0, "value" => $css_theme]);
     exit();
 }

@@ -237,15 +237,6 @@
 									</li>
 								<?php } ?>
 							<?php } ?>
-							<!-- Themes -->
-							<li class="top-bar-menu-item">
-								<a title="<?= _("Themes") ?>" class="top-bar-menu-link <?php if ($TAB == "THEMES") {
-									echo "active";
-								} ?>" href="/list/themes/">
-									<i class="fas fa-palette"></i>
-									<span class="top-bar-menu-link-label u-hide-desktop"><?= _("Themes") ?></span>
-								</a>
-							</li>
 							<!-- Statistics -->
 							<li class="top-bar-menu-item">
 								<a title="<?= _("Statistics") ?>" class="top-bar-menu-link <?php if ($TAB == "STATS") {

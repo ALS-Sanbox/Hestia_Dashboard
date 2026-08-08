@@ -1,7 +1,7 @@
 #!/bin/bash
 
 # Hestia Theme Manager Uninstallation Script
-# Version: 2.0.6
+# Version: 2.1.1
 
 set -e
 
@@ -179,6 +179,15 @@ remove_dashboard_and_theme_dirs() {
     if [ -d "$THEME_INTERFACE_DIR" ]; then
         rm -rf "$THEME_INTERFACE_DIR"
         print_status "Theme folder removed: $THEME_INTERFACE_DIR"
+    fi
+
+    # Some installs manually duplicated the theme gallery to web/list/themes/
+    # (plural) as a workaround for the sidebar linking there instead of the
+    # singular web/list/theme/ install.sh actually created. Clean that up too.
+    THEME_INTERFACE_DIR_PLURAL="/usr/local/hestia/web/list/themes"
+    if [ -d "$THEME_INTERFACE_DIR_PLURAL" ]; then
+        rm -rf "$THEME_INTERFACE_DIR_PLURAL"
+        print_status "Theme folder removed: $THEME_INTERFACE_DIR_PLURAL"
     fi
 }
 
