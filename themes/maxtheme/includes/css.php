@@ -1,7 +1,18 @@
 <link rel="alternate icon" href="/images/favicon.png" type="image/png">
 <link rel="icon" href="/images/logo.svg" type="image/svg+xml">
 <link rel="stylesheet" href="/css/themes/default.min.css?<?= JS_LATEST_UPDATE ?>">
-<link rel="stylesheet" href="/templates/css/style.css?<?= JS_LATEST_UPDATE ?>">
+<?php
+// Read the theme's own style.css directly off disk (through the templates
+// symlink) and inline it, rather than linking to it as a URL. Hestia's
+// panel nginx blanket-blocks everything under /templates/ to stop .php
+// source files from being downloaded, which also 404s a <link href> here -
+// a direct file read never touches nginx, same as how this include itself
+// gets loaded by header.php.
+$style_css_path = $_SERVER["HESTIA"] . "/web/templates/css/style.css";
+if (file_exists($style_css_path)) {
+	echo "<style>" . file_get_contents($style_css_path) . "</style>";
+}
+?>
 
 <?php
 $selected_theme = !empty($_SESSION["userTheme"]) ? $_SESSION["userTheme"] : $_SESSION["THEME"];

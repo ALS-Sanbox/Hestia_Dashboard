@@ -146,18 +146,6 @@ restore_original_patched_files() {
         chmod 755 /usr/local/hestia/bin/v-list-sys-config
         print_status "Restored: v-list-sys-config"
     fi
-
-    # Same for the panel nginx config we patch in-place to allow theme
-    # static assets through
-    if [ -f "$BACKUP_DIR/original-files/nginx.conf" ]; then
-        cp "$BACKUP_DIR/original-files/nginx.conf" /usr/local/hestia/nginx/conf/nginx.conf
-        if /usr/local/hestia/nginx/sbin/hestia-nginx -t -c /usr/local/hestia/nginx/conf/nginx.conf >/dev/null 2>&1; then
-            /usr/local/hestia/nginx/sbin/hestia-nginx -s reload >/dev/null 2>&1 || systemctl reload hestia >/dev/null 2>&1 || true
-            print_status "Restored: panel nginx.conf"
-        else
-            print_warning "Restored nginx.conf failed validation; left running config in place"
-        fi
-    fi
 }
 
 # Function to remove dashboard and theme folders

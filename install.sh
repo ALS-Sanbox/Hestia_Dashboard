@@ -709,66 +709,6 @@ backup_existing_plugin() {
     fi
 }
 
-# Function to allow theme static assets (css/js/images) through Hestia's
-# panel nginx, which otherwise 404s everything under /templates/ to keep
-# PHP source files from being downloaded. Without this, a theme's own
-# style.css (referenced as /templates/css/style.css through the templates
-# symlink) silently never loads, even though the <link> tag is correct and
-# the file exists on disk - the dashboard renders with color CSS but none
-# of the card/layout structure.
-patch_nginx_theme_assets() {
-    print_status "Checking panel nginx config for theme asset access..."
-
-    NGINX_CONF="/usr/local/hestia/nginx/conf/nginx.conf"
-
-    if [ ! -f "$NGINX_CONF" ]; then
-        print_warning "Panel nginx config not found at $NGINX_CONF, skipping"
-        return
-    fi
-
-    if grep -q "templates/(css|js|images)" "$NGINX_CONF"; then
-        print_status "Panel nginx already allows theme static assets"
-        return
-    fi
-
-    if ! grep -q "Deny access to internal PHP includes and source dirs" "$NGINX_CONF"; then
-        print_warning "Could not find the expected nginx block to patch; skipping (add manually if theme CSS doesn't load)"
-        return
-    fi
-
-    cp "$NGINX_CONF" "$BACKUP_DIR/original-files/nginx.conf"
-
-    # Insert an allow-rule for theme static assets immediately before the
-    # existing deny-everything-under-/templates/ rule. nginx evaluates
-    # regex locations in file order, so this must come first to take effect.
-    # Written to a script file (rather than inlined) to avoid shell-quoting
-    # issues with the backslash-escaped dot in the regex.
-    AWK_SCRIPT=$(mktemp)
-    cat > "$AWK_SCRIPT" << 'AWKEOF'
-/# Deny access to internal PHP includes and source dirs/ && !inserted {
-    print "\t\t# Allow static assets (css/js/images) from the active theme owns"
-    print "\t\t# directory - needed by the theme-manager plugin. PHP files stay"
-    print "\t\t# blocked by the rule below."
-    print "\t\tlocation ~* ^/templates/(css|js|images)/[^/]+[.](css|js|svg|png|jpe?g|gif|woff2?|ttf|ico)$ {"
-    print "\t\t\ttry_files $uri =404;"
-    print "\t\t}"
-    print ""
-    inserted=1
-}
-{ print }
-AWKEOF
-    awk -f "$AWK_SCRIPT" "$NGINX_CONF" > "$NGINX_CONF.tmp" && mv "$NGINX_CONF.tmp" "$NGINX_CONF"
-    rm -f "$AWK_SCRIPT"
-
-    if grep -q "templates/(css|js|images)" "$NGINX_CONF" && /usr/local/hestia/nginx/sbin/hestia-nginx -t -c "$NGINX_CONF" >/dev/null 2>&1; then
-        /usr/local/hestia/nginx/sbin/hestia-nginx -s reload >/dev/null 2>&1 || systemctl reload hestia >/dev/null 2>&1 || true
-        print_status "Patched panel nginx to allow theme static assets"
-    else
-        print_warning "Failed to patch nginx config safely; restoring original"
-        cp "$BACKUP_DIR/original-files/nginx.conf" "$NGINX_CONF"
-    fi
-}
-
 # Function to verify patch files exist
 verify_patch_files() {
     print_status "Verifying patch files..."
@@ -825,7 +765,6 @@ main() {
 	copy_list_themes
     copy_plugin_files
     install_theme_css_files
-    patch_nginx_theme_assets
     create_backend_scripts
     configure_sudo_permissions
     create_theme_log
