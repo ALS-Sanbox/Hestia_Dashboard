@@ -1,7 +1,15 @@
 <script defer src="/js/dist/main.min.js?<?= JS_LATEST_UPDATE ?>"></script>
 <script defer src="/js/dist/alpinejs-collapse.min.js?<?= JS_LATEST_UPDATE ?>"></script>
 <script defer src="/js/dist/alpinejs.min.js?<?= JS_LATEST_UPDATE ?>"></script>
-<script defer src="/templates/js/maxtheme.min.js?<?= JS_LATEST_UPDATE ?>"></script>
+<?php
+// Same reasoning as includes/css.php: a <script src> pointing under
+// /templates/ gets 404'd by the panel's nginx config, so read the
+// theme's own JS directly off disk and inline it instead.
+$theme_js_path = $_SERVER["HESTIA"] . "/web/templates/js/maxtheme.min.js";
+if (file_exists($theme_js_path)) {
+	echo "<script>" . file_get_contents($theme_js_path) . "</script>";
+}
+?>
 
 <script>
 	document.documentElement.classList.replace('no-js', 'js');

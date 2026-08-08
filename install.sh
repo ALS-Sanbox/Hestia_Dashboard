@@ -1,7 +1,7 @@
 #!/bin/bash
 
 # Hestia Theme Manager Installation Script
-# Version: 2.0.6
+# Version: 2.1.1
 
 set -e
 
@@ -241,6 +241,21 @@ create_theme() {
                 find "$ACTIVE_THEMES_DIR/$theme_name" -type d -exec chmod 755 {} \;
                 find "$ACTIVE_THEMES_DIR/$theme_name" -type f -exec chmod 644 {} \;
                 print_status "Deployed theme to active themes dir: $theme_name"
+            fi
+
+            # Themes that ship their own images/ (e.g. background art
+            # referenced from style.css) need it under a URL nginx will
+            # actually serve. /templates/images/ is blocked along with the
+            # rest of /templates/, so deploy to /images/theme/<name>/
+            # instead; includes/css.php rewrites style.css's relative
+            # url(../images/...) references to match.
+            if [ -d "$theme_dir/images" ]; then
+                THEME_IMAGES_DIR="/usr/local/hestia/web/images/theme/$theme_name"
+                mkdir -p "$THEME_IMAGES_DIR"
+                cp -r "$theme_dir/images/." "$THEME_IMAGES_DIR/"
+                chown -R hestiaweb:hestiaweb "$THEME_IMAGES_DIR"
+                find "$THEME_IMAGES_DIR" -type f -exec chmod 644 {} \;
+                print_status "Deployed theme images: $theme_name"
             fi
         done
     fi

@@ -8,9 +8,17 @@
 // source files from being downloaded, which also 404s a <link href> here -
 // a direct file read never touches nginx, same as how this include itself
 // gets loaded by header.php.
+// Relative url(../images/...) references inside style.css need rewriting:
+// since the CSS is now inlined into the page rather than linked, the
+// browser would otherwise resolve them against the page's own URL instead
+// of the stylesheet's location - and /templates/images/ is blocked by
+// nginx anyway, so images are deployed to the accessible /images/theme/
+// path instead (see install.sh).
 $style_css_path = $_SERVER["HESTIA"] . "/web/templates/css/style.css";
 if (file_exists($style_css_path)) {
-	echo "<style>" . file_get_contents($style_css_path) . "</style>";
+	$style_css = file_get_contents($style_css_path);
+	$style_css = str_replace("../images/", "/images/theme/maxtheme/", $style_css);
+	echo "<style>" . $style_css . "</style>";
 }
 ?>
 
