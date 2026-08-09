@@ -149,7 +149,7 @@
    ============================================================================= */
 
 :root {
-    /* Text Colors - matches real cPanel Jupiter theme's actual palette */
+    /* Text Colors - classic control panel palette */
     --color-text: #08193e;
     --color-text-highlight: #08193e;
     --color-text-link: #4259ed;

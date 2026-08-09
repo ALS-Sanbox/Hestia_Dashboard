@@ -80,7 +80,7 @@ if (is_array($logs)) {
     ];
 }
 
-// Primary domain, its SSL status, and account IP - used by cpanel_theme's
+// Primary domain, its SSL status, and account IP - used by panel_theme's
 // General Information panel. Cheap to compute for every theme (one exec
 // call), so it lives here rather than being duplicated per theme.
 exec(HESTIA_CMD . "v-list-web-domains " . quoteshellarg($user) . " json", $output, $return_var);

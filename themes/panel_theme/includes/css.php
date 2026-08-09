@@ -17,7 +17,7 @@
 $style_css_path = $_SERVER["HESTIA"] . "/web/templates/css/style.css";
 if (file_exists($style_css_path)) {
 	$style_css = file_get_contents($style_css_path);
-	$style_css = str_replace("../images/", "/images/theme/cpanel_theme/", $style_css);
+	$style_css = str_replace("../images/", "/images/theme/panel_theme/", $style_css);
 	echo "<style>" . $style_css . "</style>";
 }
 ?>

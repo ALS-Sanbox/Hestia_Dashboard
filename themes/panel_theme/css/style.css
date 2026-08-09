@@ -63,8 +63,8 @@ body {
     display: none;
 }
 
-/* Hamburger button - cPanel has no persistent sidebar, so this menu toggle
-   is always visible (not just on mobile) and lives inside the top bar. */
+/* Hamburger button - this theme has no persistent sidebar, so this menu
+   toggle is always visible (not just on mobile) and lives inside the top bar. */
 .hamburger-menu {
     display: flex;
     position: fixed;
@@ -179,9 +179,9 @@ body {
     color: var(--color-text-link, #4259ed);
 }
 
-/* cPanel has no persistent left nav in this view - the sidebar is an
-   off-canvas drawer, hidden by default at every screen width and slid in
-   over the content when the top bar's menu button is toggled. */
+/* Classic control panels have no persistent left nav in this view - the
+   sidebar is an off-canvas drawer, hidden by default at every screen width
+   and slid in over the content when the top bar's menu button is toggled. */
 .sidebar {
     width: 260px;
     min-height: calc(100vh - 56px);
@@ -272,10 +272,10 @@ body {
     margin-right: 10px;
 }
 
-/* cPanel-style navy sidebar is a fixed brand constant (matches the real
-   product - only the accent color changes between Color Theme options, the
-   sidebar itself doesn't), so its text/icon colors are pinned here at
-   higher selector specificity rather than left to the color theme file. */
+/* The navy sidebar is a fixed brand constant (only the accent color changes
+   between Color Theme options, the sidebar itself doesn't), so its
+   text/icon colors are pinned here at higher selector specificity rather
+   than left to the color theme file. */
 .sidebar .sidebar-usage-item,
 .sidebar .sidebar-menu a,
 .sidebar .sidebar-tabs a {
@@ -1648,8 +1648,8 @@ button {
 }
 
 /* =============================================================================
-   CPANEL-STYLE TOOLS GRID (category panels + icon grid, mirrors the real
-   cPanel Home/Tools page: white panels with a header, each containing a
+   TOOLS GRID (category panels + icon grid, mirrors a classic control
+   panel's Home/Tools page: white panels with a header, each containing a
    wrapped row of icon+label items)
    ============================================================================= */
 
