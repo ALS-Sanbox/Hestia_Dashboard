@@ -5,7 +5,12 @@
     "css_theme": "glass_theme_color",
     "themes": [
         "glass_theme_color",
-        "glass_darkmode_theme"
+        "glass_darkmode_theme",
+        "sunrise_color_theme",
+        "forest_color_theme",
+        "berry_color_theme",
+        "slate_color_theme",
+        "violet_color_theme"
     ],
     "created": "2025-10-06 12:00:00",
     "compatibility": {

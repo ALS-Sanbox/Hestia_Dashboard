@@ -6,7 +6,12 @@
     "css_theme": "dark_glass_theme_color",
     "themes": [
         "dark_glass_theme_color",
-        "orange_color_theme"
+        "orange_color_theme",
+        "emerald_color_theme",
+        "crimson_color_theme",
+        "ocean_color_theme",
+        "amethyst_color_theme",
+        "sunset_color_theme"
     ],
     "created": "2025-10-06 12:00:00",
     "compatibility": {

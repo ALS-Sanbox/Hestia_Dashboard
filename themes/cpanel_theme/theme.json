@@ -1,0 +1,25 @@
+{
+    "name": "cPanel Theme",
+    "description": "A light, flat theme styled after cPanel's classic control panel look",
+    "version": "1.0.0",
+    "author": "Afro Lion Studios",
+    "css_theme": "classic_blue_color_theme",
+    "themes": [
+        "classic_blue_color_theme",
+        "jupiter_teal_color_theme",
+        "slate_gray_color_theme",
+        "forest_green_color_theme",
+        "graphite_color_theme"
+    ],
+    "created": "2026-08-08 00:00:00",
+    "compatibility": {
+        "hestia_version": ">=1.8.0",
+        "php_version": ">=7.4"
+    },
+    "features": [
+        "cPanel-inspired layout",
+        "Flat, light UI (no glass/blur effects)",
+        "Responsive design",
+        "Custom color schemes"
+    ]
+}
