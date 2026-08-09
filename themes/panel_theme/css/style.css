@@ -37,8 +37,17 @@ body {
    LAYOUT CONTAINERS
    ============================================================================= */
 
+/* .cp-topbar and .sidebar are both position:fixed, so they're out of
+   normal document flow and reserve no space of their own - every real
+   Hestia page (list_web.php, list_user.php, etc.) starts its content right
+   at the top of .app with nothing pushing it down, which means it was
+   rendering underneath the opaque 56px topbar. padding-top here doesn't
+   affect the fixed children (fixed positioning is relative to the
+   viewport, not this padding box) but does push every page's actual
+   normal-flow content down to clear the topbar. */
 .app {
     min-height: 100vh;
+    padding-top: 56px;
     transition: margin-left var(--animate-duration);
 }
 
@@ -885,13 +894,15 @@ body {
    TOOLBAR & FORM ELEMENTS
    ============================================================================= */
 
+/* Cosmetic only - Hestia's own default.min.css already sets .toolbar's
+   height (45px), flex layout, and sticky positioning; padding/height
+   overrides here would squeeze .toolbar-inner's own padding into that
+   fixed box and effectively clip/hide its contents (buttons, search,
+   sorting) - which is exactly what happened before this comment existed. */
 .toolbar {
-    position: unset;
     background: var(--bg-glass, #ffffff);
-    border: 1px solid var(--border-glass, #e2e8f0);
-    margin-bottom: 20px;
-    padding: 15px;
-    border-radius: 6px;
+    border-top: 1px solid var(--border-glass, #e2e8f0);
+    border-bottom: 1px solid var(--border-glass, #e2e8f0);
 }
 
 .toolbar .form-select {
@@ -1744,5 +1755,4 @@ button {
     max-width: none;
     margin: inherit;
     margin-left: 0;
-    margin-top: 56px;
 }
