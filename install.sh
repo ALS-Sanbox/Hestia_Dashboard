@@ -824,21 +824,30 @@ main() {
     verify_patch_files
     backup_existing_plugin
     create_directories
+
+    # copy_plugin_files (which places hestia_theme_manager.php into
+    # $PLUGIN_DIR) and run_plugin_install (which calls into it and, among
+    # other things, snapshots web/templates/ as the plugin's own "pristine
+    # original" backup) must both run BEFORE apply_patch_files touches
+    # anything under web/templates/ - otherwise that "pristine" snapshot
+    # would actually contain our already-patched panel.php/edit_server.php,
+    # not the true original Hestia files a later uninstall should restore.
+    copy_plugin_files
+    run_plugin_install
+
     backup_original_files
     apply_patch_files
     create_dashboard
 	create_theme
-    copy_plugin_files
     install_theme_css_files
     patch_theme_null_guards
     create_backend_scripts
     configure_sudo_permissions
     create_theme_log
-    run_plugin_install
     create_cli_command
     create_theme_guide
     setup_logrotate
-    
+
     show_summary
 }
 

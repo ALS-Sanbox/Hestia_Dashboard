@@ -1023,8 +1023,57 @@ class HestiaThemeManager {
         }
         
         $this->log("Successfully created symlink from templates to theme: $theme_name");
+
+        $this->reloadPhpFpm();
     }
-    
+
+    /**
+     * PHP-FPM workers are long-lived and cache resolved symlink targets in
+     * their own realpath_cache (default TTL 120s), independent per worker.
+     * Swapping the web/templates symlink (or replacing it with a real
+     * directory, as restoreOriginalTemplates() does) doesn't invalidate
+     * that cache - so for up to two minutes afterward, whichever worker
+     * happens to serve a given request can still resolve paths under
+     * templates/ against the *previous* target, which by then may no
+     * longer exist (e.g. a theme that was just switched away from, or
+     * deleted during uninstall), causing a fatal "failed opening required"
+     * error on an otherwise-correct file structure. A graceful reload
+     * (SIGUSR2 to the FPM master) drops every worker's cache immediately
+     * without dropping the listening socket or any in-flight connections -
+     * unlike a full stop/start, nothing is refused during the reload.
+     */
+    private function reloadPhpFpm() {
+        $pid_file = '/run/hestia-php.pid';
+        if (!file_exists($pid_file)) {
+            $this->log("Warning: hestia-php pid file not found at $pid_file, skipping PHP-FPM reload");
+            return;
+        }
+
+        $pid = trim(@file_get_contents($pid_file));
+        if (!ctype_digit($pid)) {
+            $this->log("Warning: hestia-php pid file did not contain a valid PID, skipping PHP-FPM reload");
+            return;
+        }
+
+        // Prefer posix_kill()+SIGUSR2 (needs the posix and pcntl
+        // extensions - both present on this project's dev/test box, but
+        // not guaranteed on every install); fall back to the `kill`
+        // binary via shell_exec so this still works without them.
+        $sent = false;
+        if (function_exists('posix_kill') && defined('SIGUSR2')) {
+            $sent = posix_kill((int) $pid, SIGUSR2);
+        } else {
+            exec('kill -USR2 ' . escapeshellarg($pid) . ' 2>&1', $output, $return_var);
+            $sent = $return_var === 0;
+        }
+
+        if ($sent) {
+            $this->log("Sent graceful reload (SIGUSR2) to hestia-php (pid $pid) to clear stale realpath cache");
+        } else {
+            $this->log("Warning: failed to signal hestia-php (pid $pid) for reload - a manual 'sudo /etc/init.d/hestia restart' may be needed if pages under /list/ or /edit/ 500 shortly after this operation");
+        }
+    }
+
     /**
      * Get list of available themes
      */
@@ -1156,6 +1205,8 @@ class HestiaThemeManager {
                 throw new Exception("Failed to restore original templates directory");
             }
             $this->log("Restored original templates directory");
+
+            $this->reloadPhpFpm();
         } else {
             $this->log("Warning: Original templates backup not found");
         }
