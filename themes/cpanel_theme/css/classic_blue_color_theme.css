@@ -149,64 +149,64 @@
    ============================================================================= */
 
 :root {
-    /* Text Colors */
-    --color-text: #1f2937;
-    --color-text-highlight: #0f3d63;
-    --color-text-link: #2a5885;
-    --color-text-link-hover: #1f3a5f;
-    --color-text-heading: #111827;
+    /* Text Colors - matches real cPanel Jupiter theme's actual palette */
+    --color-text: #08193e;
+    --color-text-highlight: #08193e;
+    --color-text-link: #4259ed;
+    --color-text-link-hover: #384cc9;
+    --color-text-heading: #08193e;
     --color-text-muted: #5b6472;
-    --color-background: #eef2f6;
+    --color-background: #f7f8fa;
 
     /* Alert Colors */
-    --alert-border-color: #dbe3ea;
+    --alert-border-color: #e6e9ef;
     --alert-box-shadow: 0 2px 4px #0000000d;
     --alert-text-shadow: none;
-    --alert-info-color: #2a5885;
-    --alert-danger-color: #dc2626;
-    --alert-success-color: #16a34a;
+    --alert-info-color: #138496;
+    --alert-danger-color: #dc3545;
+    --alert-success-color: #218838;
 
     /* Icon Colors */
-    --icon-color-teal: #0891b2;
+    --icon-color-teal: #138496;
     --icon-color-purple: #7c3aed;
-    --icon-color-maroon: #be123c;
-    --icon-color-red: #dc2626;
-    --icon-color-green: #16a34a;
-    --icon-color-orange: #d97706;
-    --icon-color-blue: #2a5885;
-    --icon-color-lightblue: #60a5fa;
+    --icon-color-maroon: #c82333;
+    --icon-color-red: #dc3545;
+    --icon-color-green: #218838;
+    --icon-color-orange: #ff6c2c;
+    --icon-color-blue: #4259ed;
+    --icon-color-lightblue: #7c8ff2;
 
     /* Gradient Colors */
-    --gradient-primary: linear-gradient(45deg, #2a5885, #1f3a5f);
-    --gradient-success: linear-gradient(45deg, #16a34a, #15803d);
-    --gradient-info: linear-gradient(45deg, #0891b2, #0e7490);
-    --gradient-warning: linear-gradient(45deg, #d97706, #b45309);
-    --gradient-danger: linear-gradient(45deg, #dc2626, #b91c1c);
+    --gradient-primary: linear-gradient(45deg, #4259ed, #384cc9);
+    --gradient-success: linear-gradient(45deg, #218838, #1c7430);
+    --gradient-info: linear-gradient(45deg, #138496, #0f6b7a);
+    --gradient-warning: linear-gradient(45deg, #ffc107, #e0a800);
+    --gradient-danger: linear-gradient(45deg, #dc3545, #c82333);
     --gradient-purple: linear-gradient(45deg, #7c3aed, #6d28d9);
-    --gradient-blue: linear-gradient(45deg, #2a5885, #0891b2);
+    --gradient-blue: linear-gradient(45deg, #4259ed, #138496);
     --gradient-gray: linear-gradient(45deg, #64748b, #475569);
 
     /* Background Colors */
     --bg-glass: #ffffff;
-    --bg-glass-hover: #f8fafc;
-    --bg-glass-light: #f8fafc;
-    --border-glass: #dbe3ea;
-    --border-glass-hover: #c3cfda;
+    --bg-glass-hover: #f7f8fa;
+    --bg-glass-light: #f7f8fa;
+    --border-glass: #e6e9ef;
+    --border-glass-hover: #ced1d8;
 
-    /* Top Bar */
-    --top-bar-background: linear-gradient(to bottom, #2a5885 0%, #1f3a5f 100%), #1f3a5f;
-    --top-bar-box-shadow: 0 2px 6px rgba(0, 0, 0, 0.15);
-    --top-bar-border-bottom: 1px solid #16324f;
+    /* Top Bar (superseded by .cp-topbar in style.css, kept for template compatibility) */
+    --top-bar-background: linear-gradient(to bottom, #4259ed 0%, #384cc9 100%), #384cc9;
+    --top-bar-box-shadow: 0 2px 6px rgba(0, 0, 0, 0.1);
+    --top-bar-border-bottom: 1px solid #e6e9ef;
 
     /* Chart Colors */
-    --chart-label-color: #6b7280;
-    --chart-grid-color: #e5e7eb;
+    --chart-label-color: #5b6472;
+    --chart-grid-color: #e6e9ef;
     --chart-line-1-color: var(--icon-color-blue);
     --chart-line-2-color: var(--icon-color-maroon);
     --chart-line-3-color: var(--icon-color-green);
 
     /* Code Background */
-    --code-background: #f1f5f9;
+    --code-background: #f7f8fa;
 }
 
 

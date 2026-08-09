@@ -12,14 +12,6 @@
 <header class="app-header-vertical">
 	<div class="sidebar" id="sidebar">
 
-		<!-- Logo -->
-		<div class="sidebar-logo">
-			<a href="/" title="<?= htmlentities($_SESSION["APP_NAME"]) ?>">
-				<img src="/images/logo-header.svg" alt="<?= htmlentities($_SESSION["APP_NAME"]) ?>" class="sidebar-logo-img">
-				<span class="sidebar-label"><?= htmlentities($_SESSION["APP_NAME"]) ?></span>
-			</a>
-		</div>
-
 		<!-- Usage -->
 		<div class="sidebar-usage">
 			<?php if ($_SESSION["look"] !== "") {

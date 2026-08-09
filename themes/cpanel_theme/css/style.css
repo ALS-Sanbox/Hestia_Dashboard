@@ -67,13 +67,13 @@ body {
 .hamburger-menu {
     display: none;
     position: fixed;
-    top: 20px;
-    left: 20px;
-    width: 50px;
-    height: 50px;
-    border-radius: 12px;
+    top: 8px;
+    left: 16px;
+    width: 40px;
+    height: 40px;
+    border-radius: 8px;
     cursor: pointer;
-    z-index: 1001;
+    z-index: 1200;
     flex-direction: column;
     align-items: center;
     justify-content: center;
@@ -127,11 +127,56 @@ body {
    SIDEBAR NAVIGATION
    ============================================================================= */
 
-.sidebar {
-    width: var(--sidebar-width);
-    min-height: 100vh;
+.cp-topbar {
     position: fixed;
     top: 0;
+    left: 0;
+    right: 0;
+    height: 56px;
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    padding: 0 20px;
+    background: #ffffff;
+    border-bottom: 1px solid #e6e9ef;
+    z-index: 1100;
+}
+
+.cp-topbar-brand {
+    display: flex;
+    align-items: center;
+    gap: 10px;
+}
+
+.cp-topbar-logo {
+    width: 28px;
+    height: auto;
+}
+
+.cp-topbar-appname {
+    font-weight: 700;
+    font-size: 1.05em;
+    color: #08193e;
+}
+
+.cp-topbar-user {
+    display: flex;
+    align-items: center;
+    gap: 8px;
+    font-size: 0.9em;
+    color: #08193e;
+}
+
+.cp-topbar-user i {
+    font-size: 1.3em;
+    color: var(--color-text-link, #4259ed);
+}
+
+.sidebar {
+    width: var(--sidebar-width);
+    min-height: calc(100vh - 56px);
+    position: fixed;
+    top: 56px;
     left: 0;
     display: flex;
     flex-direction: column;
@@ -139,7 +184,7 @@ body {
     overflow-y: auto;
     overflow-x: hidden;
     z-index: 1000;
-	
+    background: #08193e;
 }
 
 .sidebar:hover {
@@ -250,6 +295,41 @@ body {
     margin-right: 10px;
 }
 
+/* cPanel-style navy sidebar is a fixed brand constant (matches the real
+   product - only the accent color changes between Color Theme options, the
+   sidebar itself doesn't), so its text/icon colors are pinned here at
+   higher selector specificity rather than left to the color theme file. */
+.sidebar .sidebar-usage-item,
+.sidebar .sidebar-menu a,
+.sidebar .sidebar-tabs a {
+    color: #b3bccf;
+}
+
+.sidebar .sidebar-menu a:hover,
+.sidebar .sidebar-tabs a:hover,
+.sidebar .sidebar-menu a.active,
+.sidebar .sidebar-tabs a.active {
+    background: rgba(255, 255, 255, 0.08);
+    color: #ffffff;
+}
+
+.sidebar .sidebar-menu a.active,
+.sidebar .sidebar-tabs a.active {
+    border-left: 3px solid var(--color-text-link, #4259ed);
+}
+
+/* The color theme file's own generic .sidebar/.sidebar-submenu rules
+   (background: var(--bg-glass)) load after this stylesheet and would
+   otherwise win on equal specificity, undoing the navy background above -
+   bump specificity here instead of touching the shared color-file template. */
+.app2 .sidebar {
+    background: #08193e;
+}
+
+.sidebar .sidebar-submenu {
+    background: #0f2445;
+}
+
 /* Sidebar Submenu */
 .sidebar-submenu {
     display: flex;
@@ -265,6 +345,16 @@ body {
     visibility: hidden;
     transform: translateX(-10px);
     transition: all var(--animate-duration);
+    background: #0f2445;
+}
+
+.sidebar .sidebar-submenu a {
+    color: #b3bccf;
+}
+
+.sidebar .sidebar-submenu a:hover {
+    background: rgba(255, 255, 255, 0.08);
+    color: #ffffff;
 }
 
 .sidebar-tabs li:hover > .sidebar-submenu {
@@ -1522,4 +1612,5 @@ button {
     max-width: none;
     margin: inherit;
     margin-left: 60px;
+    margin-top: 56px;
 }
