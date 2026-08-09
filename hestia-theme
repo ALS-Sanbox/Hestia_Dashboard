@@ -1,7 +1,7 @@
 #!/bin/bash
 
 # Hestia Theme Manager CLI Wrapper
-# Version: 2.0.3
+# Version: 2.1.1
 # This script provides a clean interface for the Hestia Theme Manager
 
 # Colors for output
@@ -49,7 +49,7 @@ check_permissions() {
 
 # Function to show usage
 show_usage() {
-    echo "Hestia Theme Manager CLI v2.0.3"
+    echo "Hestia Theme Manager CLI v2.1.1"
     echo "Usage: hestia-theme [command] [arguments]"
     echo ""
     echo "Core Commands:"
@@ -210,7 +210,7 @@ case "${1:-help}" in
         ;;
     
     "version"|"--version"|"-v")
-        echo "Hestia Theme Manager CLI v2.0.3"
+        echo "Hestia Theme Manager CLI v2.1.1"
         ;;
     
     *)

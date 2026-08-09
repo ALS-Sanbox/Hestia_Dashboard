@@ -57,15 +57,20 @@ confirm_uninstall() {
     echo "  - Restore the original Hestia theme"
     echo "  - Restore original patched files:"
     echo "    • web/index.php"
-    echo "    • web/list/index.php" 
+    echo "    • web/list/index.php"
     echo "    • web/inc/main.php"
     echo "    • web/login/index.php"
+    echo "    • web/templates/pages/edit_server.php"
     echo "    • web/templates/includes/panel.php"
+    echo "  - Restore two core Hestia files patched in-place, if touched:"
+    echo "    • bin/v-list-sys-config (ALT_DASHBOARD whitelist patch)"
+    echo "    • edit/server/index.php and edit/user/index.php (PHP 8.3 null-guard patch)"
     echo "  - Remove dashboard folder (/list/dashboard/)"
-    echo "  - Remove theme folder (/list/theme/)"
+    echo "  - Remove theme gallery folder (/list/theme/)"
     echo "  - Remove list_themes.php file"
     echo "  - Remove all custom CSS themes (*_color.css files)"
     echo "  - Remove themes directory ($THEME_DIR)"
+    echo "  - Remove deployed theme images (/images/theme/)"
     echo "  - Remove all custom themes"
     echo "  - Remove backend scripts (v-change-user-theme, v-change-user-css-theme)"
     echo "  - Remove sudo permissions configuration"
@@ -113,6 +118,7 @@ restore_original_patched_files() {
         ["$BACKUP_DIR/original-files/list_index.php"]="/usr/local/hestia/web/list/index.php"
         ["$BACKUP_DIR/original-files/main.php"]="/usr/local/hestia/web/inc/main.php"
         ["$BACKUP_DIR/original-files/login_index.php"]="/usr/local/hestia/web/login/index.php"
+        ["$BACKUP_DIR/original-files/edit_server.php"]="/usr/local/hestia/web/templates/pages/edit_server.php"
         ["$BACKUP_DIR/original-files/panel.php"]="/usr/local/hestia/web/templates/includes/panel.php"
     )
     
@@ -244,10 +250,24 @@ remove_custom_css_themes() {
 # Function to remove themes directory (created by install script)
 remove_themes_directory() {
     print_status "Removing themes directory..."
-    
+
     if [ -d "$THEME_DIR" ]; then
         rm -rf "$THEME_DIR"
         print_status "Themes directory removed: $THEME_DIR"
+    fi
+}
+
+# Function to remove per-theme image assets (themes that ship their own
+# images/, e.g. background art referenced from style.css, get it deployed
+# by install.sh's create_theme() to web/images/theme/<name>/ - this was
+# never cleaned up on uninstall, leaving orphaned image files behind)
+remove_theme_images() {
+    print_status "Removing deployed theme images..."
+
+    THEME_IMAGES_DIR="$HESTIA_WEB_DIR/images/theme"
+    if [ -d "$THEME_IMAGES_DIR" ]; then
+        rm -rf "$THEME_IMAGES_DIR"
+        print_status "Theme images directory removed: $THEME_IMAGES_DIR"
     fi
 }
 
@@ -440,14 +460,17 @@ show_summary() {
     print_status "✓ Original patched files restored:"
     echo "    - web/index.php"
     echo "    - web/list/index.php"
-    echo "    - web/inc/main.php" 
+    echo "    - web/inc/main.php"
     echo "    - web/login/index.php"
+    echo "    - web/templates/pages/edit_server.php"
     echo "    - web/templates/includes/panel.php"
+    echo "    - bin/v-list-sys-config, edit/server, edit/user (if patched in-place)"
     print_status "✓ Dashboard folder removed (/list/dashboard/)"
-    print_status "✓ Theme folder removed (/list/theme/)"
+    print_status "✓ Theme gallery folder removed (/list/theme/)"
     print_status "✓ list_themes.php file removed"
     print_status "✓ All custom CSS themes removed (*_color.css files)"
     print_status "✓ Themes directory removed ($THEME_DIR)"
+    print_status "✓ Deployed theme images removed (/images/theme/)"
     print_status "✓ Backend scripts removed (v-change-user-theme, v-change-user-css-theme)"
     print_status "✓ Sudo permissions configuration removed"
     print_status "✓ Theme change log removed"
@@ -482,12 +505,13 @@ force_uninstall() {
     remove_list_themes
     remove_custom_css_themes
     remove_themes_directory
+    remove_theme_images
     remove_backend_scripts
     remove_sudo_permissions
     remove_theme_log
     remove_cli_command
     remove_logrotate
-    
+
     # Try to restore original theme if possible
     if [ -d "$PLUGIN_DIR/backups/original" ]; then
         manual_restore_original
@@ -505,7 +529,7 @@ force_uninstall() {
 main() {
     echo "======================================"
     echo "  Hestia Theme Manager Uninstaller"
-    echo "           Version 2.0.6"
+    echo "           Version 2.1.1"
     echo "======================================"
     echo
     
@@ -519,6 +543,7 @@ main() {
     remove_list_themes
     remove_custom_css_themes
     remove_themes_directory
+    remove_theme_images
     restore_original_theme
     remove_backend_scripts
     remove_sudo_permissions
@@ -547,7 +572,7 @@ case "${1:-uninstall}" in
         fi
         ;;
     "help"|"-h"|"--help")
-        echo "Hestia Theme Manager Uninstaller v2.0.6"
+        echo "Hestia Theme Manager Uninstaller v2.1.1"
         echo
         echo "Usage: $0 [uninstall|force|help]"
         echo
@@ -563,11 +588,14 @@ case "${1:-uninstall}" in
         echo "    • web/list/index.php"
         echo "    • web/inc/main.php"
         echo "    • web/login/index.php"
+        echo "    • web/templates/pages/edit_server.php"
         echo "    • web/templates/includes/panel.php"
+        echo "  - Restore core files patched in-place, if touched (bin/v-list-sys-config, edit/server, edit/user)"
         echo "  - Remove dashboard folder (/list/dashboard/)"
-        echo "  - Remove theme folder (/list/theme/)"
+        echo "  - Remove theme gallery folder (/list/theme/)"
         echo "  - Remove list_themes.php file"
         echo "  - Remove themes directory ($THEME_DIR)"
+        echo "  - Remove deployed theme images (/images/theme/)"
         echo "  - Remove all custom CSS themes (*_color.css files)"
         echo "  - Remove backend scripts (v-change-user-theme, v-change-user-css-theme)"
         echo "  - Remove sudo permissions configuration"
