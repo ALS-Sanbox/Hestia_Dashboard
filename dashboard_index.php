@@ -80,4 +80,22 @@ if (is_array($logs)) {
     ];
 }
 
+// Primary domain, its SSL status, and account IP - used by cpanel_theme's
+// General Information panel. Cheap to compute for every theme (one exec
+// call), so it lives here rather than being duplicated per theme.
+exec(HESTIA_CMD . "v-list-web-domains " . quoteshellarg($user) . " json", $output, $return_var);
+$webDomains = json_decode(implode("", $output), true);
+unset($output);
+
+$primaryDomain = "N/A";
+$primaryDomainIp = "N/A";
+$sslStatus = "Not Installed";
+if (is_array($webDomains) && count($webDomains) > 0) {
+    $primaryDomain = array_key_first($webDomains);
+    $primaryDomainIp = $webDomains[$primaryDomain]["IP"] ?? "N/A";
+    $sslStatus = ($webDomains[$primaryDomain]["SSL"] ?? "no") === "yes" ? "Active" : "Not Installed";
+}
+
+$lastLoginIp = $_SERVER["REMOTE_ADDR"] ?? "N/A";
+
 render_page($user, $TAB, "list_dashboard");

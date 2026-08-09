@@ -389,9 +389,9 @@ body {
 }
 
 .page-title {
-    font-size: clamp(2rem, 5vw, 3rem);
+    font-size: 1.5rem;
     font-weight: 700;
-    margin-bottom: 10px;
+    margin-bottom: 6px;
     -webkit-background-clip: text;
     -webkit-text-fill-color: transparent;
     background-clip: text;
@@ -1586,6 +1586,68 @@ button {
 		}
 
 /* =============================================================================
+   TWO-COLUMN DASHBOARD LAYOUT (Tools | General Information)
+   ============================================================================= */
+
+.cp-dashboard-columns {
+    display: grid;
+    grid-template-columns: 1fr 320px;
+    gap: 20px;
+    align-items: start;
+}
+
+@media (max-width: 900px) {
+    .cp-dashboard-columns {
+        grid-template-columns: 1fr;
+    }
+}
+
+.cp-info-column {
+    display: flex;
+    flex-direction: column;
+    gap: 20px;
+}
+
+.cp-info-list {
+    display: flex;
+    flex-direction: column;
+}
+
+.cp-info-row {
+    display: flex;
+    justify-content: space-between;
+    align-items: baseline;
+    gap: 10px;
+    padding: 9px 16px;
+    border-bottom: 1px solid #e6e9ef;
+}
+
+.cp-info-row:last-child {
+    border-bottom: none;
+}
+
+.cp-info-label {
+    color: #5b6472;
+    font-size: 0.85em;
+}
+
+.cp-info-value {
+    color: #08193e;
+    font-size: 0.9em;
+    font-weight: 600;
+    text-align: right;
+    word-break: break-word;
+}
+
+.cp-info-value.cp-ssl-active {
+    color: #218838;
+}
+
+.cp-info-value.cp-ssl-inactive {
+    color: #5b6472;
+}
+
+/* =============================================================================
    CPANEL-STYLE TOOLS GRID (category panels + icon grid, mirrors the real
    cPanel Home/Tools page: white panels with a header, each containing a
    wrapped row of icon+label items)
@@ -1595,7 +1657,7 @@ button {
     display: grid;
     grid-template-columns: repeat(auto-fit, minmax(300px, 1fr));
     gap: 20px;
-    margin-bottom: 30px;
+    margin-bottom: 0;
 }
 
 .cp-panel {

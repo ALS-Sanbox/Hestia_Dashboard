@@ -105,579 +105,255 @@
 <!--------- END ---------------->		
 <div class="hestia-dashboard-container">
 	<!-- Page Title -->
-	<div class="page-title-container">
+	<div class="page-title-container" style="align-items: flex-start; text-align: left; margin-bottom: 20px;">
 		<h1 class="page-title"><?= _("Dashboard") ?></h1>
-		<p class="page-subtitle"><?= _("Welcome back! Here's what's happening with ") . htmlspecialchars($sysinfo['HOSTNAME'] ?? 'N/A') ?></p>
-		<div class="underline"></div>
 	</div>
 
-	<!-- Quick Stats Row -->
-	<div class="quick-stats">
-		<div class="quick-stat-item">
-			<div class="quick-stat-icon uptime">
-				<i class="fas fa-arrow-up"></i>
-			</div>
-			<div class="quick-stat-info">
-				<div class="quick-stat-value"><?= $uptimeFormatted ?></div>
-				<div class="quick-stat-label"><?= _("Uptime") ?></div>
-			</div>
-		</div>
-		<div class="quick-stat-item">
-			<div class="quick-stat-icon time">
-				<i class="fas fa-clock"></i>
-			</div>
-			<div class="quick-stat-info">
-				<div class="quick-stat-value"><?= htmlspecialchars($serverTime) ?></div>
-				<div class="quick-stat-label"><?= _("Server Time") ?></div>
-			</div>
-		</div>
-		<div class="quick-stat-item">
-			<div class="quick-stat-icon cpu">
-				<i class="fas fa-microchip"></i>
-			</div>
-			<div class="quick-stat-info">
-				<div class="quick-stat-value"><?= htmlspecialchars($cpuUsage) ?></div>
-				<div class="quick-stat-label"><?= _("CPU Usage") ?></div>
-			</div>
-		</div>
-		<div class="quick-stat-item">
-			<div class="quick-stat-icon ram">
-				<i class="fas fa-memory"></i>
-			</div>
-			<div class="quick-stat-info">
-				<div class="quick-stat-value"><?= $ramUsageFormatted ?></div>
-				<div class="quick-stat-label"><?= _("RAM Usage") ?></div>
-			</div>
-		</div>
-	</div>
+	<div class="cp-dashboard-columns">
 
-	<!-- Main Stats Grid -->
-	<div class="stats-grid">
-		<!-- Users Card (Admin Only) -->
-        <?php if ($_SESSION["user"] === "admin"): ?>
-        <div class="stats-card" data-loading="false">
-            <div class="loading-overlay">
-                <div class="loading-spinner"></div>
-            </div>
-            <div class="stats-card-header">
-                <div class="card-icon users">
-                    <i class="fas fa-users"></i>
-                </div><a href="/add/user/">
-                <div class="card-title">
-                    <h2><?= _("Users") ?></h2>
-                    <span class="card-subtitle"><?= _("System accounts") ?></span>
-                </div></a>
-                <div class="card-actions">
-                    <button class="action-btn" onclick="refreshCard(this)" title="<?= _("Refresh") ?>">
-                        <i class="fas fa-sync-alt"></i>
-                    </button>
-                    <a href="/add/user/" class="action-btn" title="<?= _("Add User") ?>">
-                        <i class="fas fa-plus"></i>
-                    </a>
-                </div>
-            </div>
-            <div class="stats-card-content">
-                <div class="stat-main">
-                    <?php
-                    if ($_SESSION["user"] !== "admin" && $_SESSION["POLICY_SYSTEM_HIDE_ADMIN"] === "yes") {
-                        $user_count = $panel[$user]["U_USERS"] - 1;
-                    } else {
-                        $user_count = $panel[$user]["U_USERS"];
-                    }
-                    $suspended_count = $panel[$user]["SUSPENDED_USERS"];
-                    ?>
-                    <span class="stat-value"><?= $user_count ?></span>
-                    <span class="stat-unit"><?= _("total") ?></span>
-                </div>
-                <div class="stat-secondary">
-                    <span class="stat-label"><?= _("Suspended:") ?></span>
-                    <span class="stat-value-small"><?= $suspended_count ?></span>
-                </div>
-                <div class="progress-container">
-                    <div class="progress-bar">
-                        <div class="progress-fill" style="width: <?= ($user_count / 30) * 100 ?>%"></div>
-                    </div>
-                    <span class="progress-text"><?= $user_count ?>/30</span>
-                </div>
-            </div>
-        </div>
-        <?php endif; ?>
-		
-		<!-- Web Domains Card -->
-        <div class="stats-card" data-loading="false">
-            <div class="loading-overlay">
-                <div class="loading-spinner"></div>
-            </div>
-            <div class="stats-card-header">
-                <div class="card-icon web">
-                    <i class="fas fa-earth-americas"></i>
-                </div>
-                <a href="/list/web">
-				<div class="card-title">
-                    <h2><?= _("Web Domains") ?></h2>
-                    <span class="card-subtitle"><?= _("Active websites") ?></span>
-                </div></a>
-                <div class="card-actions">
-                    <button class="action-btn" onclick="refreshCard(this)" title="<?= _("Refresh") ?>">
-                        <i class="fas fa-sync-alt"></i>
-                    </button>
-                    <a href="/add/web/" class="action-btn" title="<?= _("Add Domain") ?>">
-                        <i class="fas fa-plus"></i>
-                    </a>
-                </div>
-            </div>
-            <div class="stats-card-content">
-                <div class="stat-main">
-                    <span class="stat-value"><?= $panel[$user]["U_WEB_DOMAINS"] ?></span>
-                    <span class="stat-unit"><?= _("domains") ?></span>
-                </div>
-                <div class="stat-secondary">
-                    <span class="stat-label"><?= _("SSL Enabled:") ?></span>
-                    <span class="stat-value-small"><?= intval($panel[$user]["U_WEB_DOMAINS"] * 0.8) ?></span>
-                </div>
-                <div class="progress-container">
-                    <div class="progress-bar">
-                        <?php 
-                        $web_percentage = $panel[$user]["WEB_DOMAINS"] === "unlimited" ? 60 : ($panel[$user]["U_WEB_DOMAINS"] / $panel[$user]["WEB_DOMAINS"]) * 100;
-                        ?>
-                        <div class="progress-fill" style="width: <?= min($web_percentage, 100) ?>%"></div>
-                    </div>
-                    <span class="progress-text">
-                        <?= $panel[$user]["U_WEB_DOMAINS"] ?>/<?= $panel[$user]["WEB_DOMAINS"] === "unlimited" ? "∞" : $panel[$user]["WEB_DOMAINS"] ?>
-                    </span>
-                </div>
-            </div>
-        </div>
-		
-		<!-- Mail Accounts Card -->
-        <div class="stats-card" data-loading="false">
-            <div class="loading-overlay">
-                <div class="loading-spinner"></div>
-            </div>
-            <div class="stats-card-header">
-                <div class="card-icon mail">
-                    <i class="fas fa-envelopes-bulk"></i>
-                </div><a href="/list/mail">
-                <div class="card-title">
-                    <h2><?= _("Mail Accounts") ?></h2>
-                    <span class="card-subtitle"><?= _("Email management") ?></span>
-                </div></a>
-                <div class="card-actions">
-                    <button class="action-btn" onclick="refreshCard(this)" title="<?= _("Refresh") ?>">
-                        <i class="fas fa-sync-alt"></i>
-                    </button>
-                    <a href="/add/mail/" class="action-btn" title="<?= _("Add Account") ?>">
-                        <i class="fas fa-plus"></i>
-                    </a>
-                </div>
-            </div>
-            <div class="stats-card-content">
-                <div class="stat-main">
-                    <span class="stat-value"><?= $panel[$user]["U_MAIL_ACCOUNTS"] ?></span>
-                    <span class="stat-unit"><?= _("accounts") ?></span>
-                </div>
-                <div class="stat-secondary">
-                    <span class="stat-label"><?= _("Domains:") ?></span>
-                    <span class="stat-value-small"><?= $panel[$user]["U_MAIL_DOMAINS"] ?></span>
-                </div>
-                <div class="progress-container">
-                    <div class="progress-bar">
-                        <?php 
-                        $mail_max = ($panel[$user]["MAIL_ACCOUNTS"] === "unlimited" || $panel[$user]["MAIL_DOMAINS"] === "unlimited") ? 50 : $panel[$user]["MAIL_ACCOUNTS"] * $panel[$user]["MAIL_DOMAINS"];
-                        $mail_percentage = $mail_max > 0 ? ($panel[$user]["U_MAIL_ACCOUNTS"] / $mail_max) * 100 : 90;
-                        ?>
-                        <div class="progress-fill" style="width: <?= min($mail_percentage, 100) ?>%"></div>
-                    </div>
-                    <span class="progress-text">
-                        <?= $panel[$user]["U_MAIL_ACCOUNTS"] ?>/<?= ($panel[$user]["MAIL_ACCOUNTS"] === "unlimited" || $panel[$user]["MAIL_DOMAINS"] === "unlimited") ? "∞" : $panel[$user]["MAIL_ACCOUNTS"] * $panel[$user]["MAIL_DOMAINS"] ?>
-                    </span>
-                </div>
-            </div>
-        </div>
-		
-		<!-- Databases Card -->
-        <div class="stats-card" data-loading="false">
-            <div class="loading-overlay">
-                <div class="loading-spinner"></div>
-            </div>
-            <div class="stats-card-header">
-                <div class="card-icon database">
-                    <i class="fas fa-database"></i>
-                </div><a href="/list/db">
-                <div class="card-title">
-                    <h2><?= _("Databases") ?></h2>
-                    <span class="card-subtitle">MySQL & PostgreSQL</span>
-                </div></a>
-                <div class="card-actions">
-                    <button class="action-btn" onclick="refreshCard(this)" title="<?= _("Refresh") ?>">
-                        <i class="fas fa-sync-alt"></i>
-                    </button>
-                    <a href="/add/db/" class="action-btn" title="<?= _("Add Database") ?>">
-                        <i class="fas fa-plus"></i>
-                    </a>
-                </div>
-            </div>
-            <div class="stats-card-content">
-                <div class="stat-main">
-                    <span class="stat-value"><?= $panel[$user]["U_DATABASES"] ?></span>
-                    <span class="stat-unit"><?= _("databases") ?></span>
-                </div>
-                <div class="stat-secondary">
-                    <span class="stat-label"><?= _("Total Size:") ?></span>
-                    <span class="stat-value-small">1.2GB</span>
-                </div>
-                <div class="progress-container">
-                    <div class="progress-bar">
-                        <?php 
-                        $db_percentage = $panel[$user]["DATABASES"] === "unlimited" ? 40 : ($panel[$user]["U_DATABASES"] / $panel[$user]["DATABASES"]) * 100;
-                        ?>
-                        <div class="progress-fill" style="width: <?= min($db_percentage, 100) ?>%"></div>
-                    </div>
-                    <span class="progress-text">
-                        <?= $panel[$user]["U_DATABASES"] ?>/<?= $panel[$user]["DATABASES"] === "unlimited" ? "∞" : $panel[$user]["DATABASES"] ?>
-                    </span>
-                </div>
-            </div>
-        </div>
-		
-       <!-- Cron Jobs Card -->
-        <div class="stats-card" data-loading="false">
-            <div class="loading-overlay">
-                <div class="loading-spinner"></div>
-            </div>
-            <div class="stats-card-header">
-                <div class="card-icon cron">
-                    <i class="fas fa-clock"></i>
-                </div><a href="/list/cron">
-                <div class="card-title">
-                    <h2><?= _("Cron Jobs") ?></h2>
-                    <span class="card-subtitle"><?= _("Scheduled tasks") ?></span>
-                </div></a>
-                <div class="card-actions">
-                    <button class="action-btn" onclick="refreshCard(this)" title="<?= _("Refresh") ?>">
-                        <i class="fas fa-sync-alt"></i>
-                    </button>
-                    <a href="/add/cron/" class="action-btn" title="<?= _("Add Job") ?>">
-                        <i class="fas fa-plus"></i>
-                    </a>
-                </div>
-            </div>
-            <div class="stats-card-content">
-                <div class="stat-main">
-                    <span class="stat-value"><?= $panel[$user]["U_CRON_JOBS"] ?></span>
-                    <span class="stat-unit"><?= _("jobs") ?></span>
-                </div>
-                <div class="stat-secondary">
-                    <span class="stat-label"><?= _("Active:") ?></span>
-                    <span class="stat-value-small"><?= max(0, $panel[$user]["U_CRON_JOBS"] - 1) ?></span>
-                </div>
-                <div class="progress-container">
-                    <div class="progress-bar">
-                        <?php 
-                        $cron_percentage = $panel[$user]["CRON_JOBS"] === "unlimited" ? 50 : ($panel[$user]["U_CRON_JOBS"] / $panel[$user]["CRON_JOBS"]) * 100;
-                        ?>
-                        <div class="progress-fill" style="width: <?= min($cron_percentage, 100) ?>%"></div>
-                    </div>
-                    <span class="progress-text">
-                        <?= $panel[$user]["U_CRON_JOBS"] ?>/<?= $panel[$user]["CRON_JOBS"] === "unlimited" ? "∞" : $panel[$user]["CRON_JOBS"] ?>
-                    </span>
-                </div>
-            </div>
-        </div>
-		
-		<!-- Disk Usage Card -->
-        <div class="stats-card" data-loading="false">
-            <div class="loading-overlay">
-                <div class="loading-spinner"></div>
-            </div>
-            <div class="stats-card-header">
-                <div class="card-icon disk">
-                    <i class="fas fa-hard-drive"></i>
-                </div>
-                <div class="card-title">
-                    <h2><?= _("Disk Usage") ?></h2>
-                    <span class="card-subtitle"><?= _("Storage utilization") ?></span>
-                </div>
-                <div class="card-actions">
-                    <button class="action-btn" onclick="refreshCard(this)" title="<?= _("Refresh") ?>">
-                        <i class="fas fa-sync-alt"></i>
-                    </button>
-                    <?php if (isset($_SESSION["FILE_MANAGER"]) && $_SESSION["FILE_MANAGER"] == "true") { ?>
-                    <a href="/fm/" class="action-btn" title="<?= _("File Manager") ?>">
-                        <i class="fas fa-folder-open"></i>
-                    </a>
-                    <?php } ?>
-                </div>
-            </div>
-            <div class="stats-card-content">
-				<div class="stat-main">
-					<span class="stat-value"><?= humanize_usage_size($panel[$user]["U_DISK"]) ?></span>
-					<span class="stat-unit"><?= _("used") ?></span>
-				</div>
-				<div class="stat-secondary">
-					<span class="stat-label"><?= _("Available:") ?></span>
-					<span class="stat-value-small">
-						<?php if ($panel[$user]["DISK_QUOTA"] === "unlimited"): ?>
-							<?= _("Unlimited") ?>
-						<?php else: ?>
-							<?= humanize_usage_size($panel[$user]["DISK_QUOTA"] - $panel[$user]["U_DISK"]) ?>
+		<!-- Column 1: Tools -->
+		<div class="cp-tools-column">
+			<div class="page-title-container" style="align-items: flex-start; text-align: left; margin-bottom: 15px;">
+				<h2 class="cp-panel-heading-title" style="font-size: 1.2em;"><?= _("Tools") ?></h2>
+			</div>
+			<div class="cp-tools-grid">
+
+				<!-- Files -->
+				<div class="cp-panel">
+					<div class="cp-panel-heading">
+						<div class="cp-panel-heading-icon" style="background: var(--icon-color-blue);"><i class="fas fa-folder-open"></i></div>
+						<div class="cp-panel-heading-title"><?= _("Files") ?></div>
+					</div>
+					<div class="cp-panel-body">
+						<?php if (isset($_SESSION["FILE_MANAGER"]) && !empty($_SESSION["FILE_MANAGER"]) && $_SESSION["FILE_MANAGER"] == "true"): ?>
+						<a href="/fm/" class="cp-item">
+							<div class="cp-item-icon" style="background: var(--icon-color-blue);"><i class="fas fa-folder-open"></i></div>
+							<span class="cp-item-text"><?= _("File Manager") ?></span>
+						</a>
 						<?php endif; ?>
-					</span>
-				</div>
-				<div class="progress-container">
-					<div class="progress-bar">
-						<?php 
-						if ($panel[$user]["DISK_QUOTA"] === "unlimited") {
-							$disk_percentage = 0; // Show minimal usage for unlimited quotas
-						} else {
-							$disk_percentage = $panel[$user]["DISK_QUOTA"] > 0 ? 
-								($panel[$user]["U_DISK"] / $panel[$user]["DISK_QUOTA"]) * 100 : 0;
-						}
-						?>
-						<div class="progress-fill" style="width: <?= min($disk_percentage, 100) ?>%"></div>
+						<a href="/list/backup/" class="cp-item">
+							<div class="cp-item-icon" style="background: var(--icon-color-blue);"><i class="fas fa-download"></i></div>
+							<span class="cp-item-text"><?= _("Backups") ?></span>
+						</a>
 					</div>
-					<span class="progress-text">
-						<?= humanize_usage_size($panel[$user]["U_DISK"]) ?>/<?php 
-						if ($panel[$user]["DISK_QUOTA"] === "unlimited"): 
-							echo _("Unlimited");
-						else: 
-							echo humanize_usage_size($panel[$user]["DISK_QUOTA"]);
-						endif; ?>
-					</span>
 				</div>
-			</div>
-        </div>
-    </div>
 
-	<!-- Recent Activity & System Status -->
-	<div class="bottom-section">
-		<div class="activity-section">
-			<div class="section-header">
-				<h3><i class="fas fa-history"></i> Recent Activity</h3>
-				<?php if (
-					isset($_SESSION["user"]) && $_SESSION["user"] === "admin" &&
-					isset($_SESSION["userContext"]) && strtolower($_SESSION["userContext"]) === "admin" &&
-					empty($_SESSION["look"])
-				): ?>
-					<a href="/list/log/?user=system&token=<?= $_SESSION["token"] ?>" class="view-all-btn">View All</a>
-				<?php else: ?>
-					<a href="/list/log/" class="view-all-btn">View All</a>
-				<?php endif; ?>
-			</div>
-			<div class="activity-list">
-				<?php foreach ($recentLogs as $log): ?>
-					<div class="activity-item">
-						<div class="activity-icon <?= strtolower($log['LEVEL']) ?>">
-							<?php if ($log['LEVEL'] === 'error'): ?>
-								<i class="fas fa-times-circle"></i>
-							<?php elseif ($log['LEVEL'] === 'warning'): ?>
-								<i class="fas fa-exclamation-triangle"></i>
-							<?php else: ?>
-								<i class="fas fa-check"></i>
-							<?php endif; ?>
-						</div>
-						<div class="activity-content">
-							<div class="activity-title">
-								<?= htmlspecialchars($log['MESSAGE']) ?>
-							</div>
-							<div class="activity-time">
-								<?= htmlspecialchars($log['DATE'] . ' ' . $log['TIME']) ?>
-							</div>
-						</div>
+				<!-- Databases -->
+				<div class="cp-panel">
+					<div class="cp-panel-heading">
+						<div class="cp-panel-heading-icon" style="background: var(--icon-color-orange);"><i class="fas fa-database"></i></div>
+						<div class="cp-panel-heading-title"><?= _("Databases") ?></div>
 					</div>
-				<?php endforeach; ?>
-			</div>
-		</div>
+					<div class="cp-panel-body">
+						<a href="/list/db/" class="cp-item">
+							<div class="cp-item-icon" style="background: var(--icon-color-orange);"><i class="fas fa-database"></i></div>
+							<span class="cp-item-text"><?= _("Databases") ?></span>
+						</a>
+						<a href="/add/db/" class="cp-item">
+							<div class="cp-item-icon" style="background: var(--icon-color-orange);"><i class="fas fa-plus"></i></div>
+							<span class="cp-item-text"><?= _("New Database") ?></span>
+						</a>
+					</div>
+				</div>
 
+				<!-- Domains -->
+				<div class="cp-panel">
+					<div class="cp-panel-heading">
+						<div class="cp-panel-heading-icon" style="background: var(--icon-color-purple);"><i class="fas fa-earth-americas"></i></div>
+						<div class="cp-panel-heading-title"><?= _("Domains") ?></div>
+					</div>
+					<div class="cp-panel-body">
+						<a href="/list/web/" class="cp-item">
+							<div class="cp-item-icon" style="background: var(--icon-color-purple);"><i class="fas fa-earth-americas"></i></div>
+							<span class="cp-item-text"><?= _("Web Domains") ?></span>
+						</a>
+						<a href="/add/web/" class="cp-item">
+							<div class="cp-item-icon" style="background: var(--icon-color-purple);"><i class="fas fa-plus"></i></div>
+							<span class="cp-item-text"><?= _("Add Domain") ?></span>
+						</a>
+						<a href="/list/dns/" class="cp-item">
+							<div class="cp-item-icon" style="background: var(--icon-color-purple);"><i class="fas fa-book-atlas"></i></div>
+							<span class="cp-item-text"><?= _("DNS Zones") ?></span>
+						</a>
+						<a href="/generate/ssl/" class="cp-item">
+							<div class="cp-item-icon" style="background: var(--icon-color-purple);"><i class="fas fa-shield-alt"></i></div>
+							<span class="cp-item-text"><?= _("SSL Certificate") ?></span>
+						</a>
+					</div>
+				</div>
 
-		<!-- System Status -->
-		<div class="status-section">
-			<div class="section-header">
-				<h3><i class="fas fa-server"></i> System Status</h3>
-				<button class="refresh-btn" onclick="location.reload()">
-					<i class="fas fa-sync-alt"></i>
-				</button>
-			</div>
-			<div class="status-grid">
-				<?php foreach ($services as $label => $status): ?>
-					<div class="status-item">
-						<span class="status-label"><?= $label ?></span>
-						<?php if ($status === 'running'): ?>
-							<span class="status-badge running">Running</span>
-						<?php elseif ($status === 'stopped'): ?>
-							<span class="status-badge stopped">Stopped</span>
-						<?php else: ?>
-							<span class="status-badge warning">Unknown</span>
+				<!-- Email -->
+				<div class="cp-panel">
+					<div class="cp-panel-heading">
+						<div class="cp-panel-heading-icon" style="background: var(--icon-color-teal);"><i class="fas fa-envelopes-bulk"></i></div>
+						<div class="cp-panel-heading-title"><?= _("Email") ?></div>
+					</div>
+					<div class="cp-panel-body">
+						<a href="/list/mail/" class="cp-item">
+							<div class="cp-item-icon" style="background: var(--icon-color-teal);"><i class="fas fa-envelopes-bulk"></i></div>
+							<span class="cp-item-text"><?= _("Mail Accounts") ?></span>
+						</a>
+						<a href="/add/mail/" class="cp-item">
+							<div class="cp-item-icon" style="background: var(--icon-color-teal);"><i class="fas fa-envelope-open"></i></div>
+							<span class="cp-item-text"><?= _("Create Email") ?></span>
+						</a>
+					</div>
+				</div>
+
+				<!-- Metrics -->
+				<div class="cp-panel">
+					<div class="cp-panel-heading">
+						<div class="cp-panel-heading-icon" style="background: var(--icon-color-green);"><i class="fas fa-chart-line"></i></div>
+						<div class="cp-panel-heading-title"><?= _("Metrics") ?></div>
+					</div>
+					<div class="cp-panel-body">
+						<a href="/list/stats/" class="cp-item">
+							<div class="cp-item-icon" style="background: var(--icon-color-green);"><i class="fas fa-chart-line"></i></div>
+							<span class="cp-item-text"><?= _("Statistics") ?></span>
+						</a>
+						<a href="/list/log/" class="cp-item">
+							<div class="cp-item-icon" style="background: var(--icon-color-green);"><i class="fas fa-history"></i></div>
+							<span class="cp-item-text"><?= _("Logs") ?></span>
+						</a>
+					</div>
+				</div>
+
+				<!-- Security -->
+				<div class="cp-panel">
+					<div class="cp-panel-heading">
+						<div class="cp-panel-heading-icon" style="background: var(--icon-color-red);"><i class="fas fa-shield-halved"></i></div>
+						<div class="cp-panel-heading-title"><?= _("Security") ?></div>
+					</div>
+					<div class="cp-panel-body">
+						<a href="/list/firewall/" class="cp-item">
+							<div class="cp-item-icon" style="background: var(--icon-color-red);"><i class="fas fa-shield-halved"></i></div>
+							<span class="cp-item-text"><?= _("Firewall") ?></span>
+						</a>
+						<a href="/list/ip/" class="cp-item">
+							<div class="cp-item-icon" style="background: var(--icon-color-red);"><i class="fas fa-network-wired"></i></div>
+							<span class="cp-item-text"><?= _("IP Management") ?></span>
+						</a>
+					</div>
+				</div>
+
+				<!-- Advanced -->
+				<div class="cp-panel">
+					<div class="cp-panel-heading">
+						<div class="cp-panel-heading-icon" style="background: var(--icon-color-maroon);"><i class="fas fa-code"></i></div>
+						<div class="cp-panel-heading-title"><?= _("Advanced") ?></div>
+					</div>
+					<div class="cp-panel-body">
+						<a href="/list/cron/" class="cp-item">
+							<div class="cp-item-icon" style="background: var(--icon-color-maroon);"><i class="fas fa-clock"></i></div>
+							<span class="cp-item-text"><?= _("Cron Jobs") ?></span>
+						</a>
+						<?php if (isset($_SESSION["WEB_TERMINAL"]) && !empty($_SESSION["WEB_TERMINAL"]) && $_SESSION["WEB_TERMINAL"] == "true" && $_SESSION["login_shell"] != "nologin"): ?>
+						<a href="/list/terminal/" class="cp-item">
+							<div class="cp-item-icon" style="background: var(--icon-color-maroon);"><i class="fas fa-terminal"></i></div>
+							<span class="cp-item-text"><?= _("Web Terminal") ?></span>
+						</a>
 						<?php endif; ?>
 					</div>
-				<?php endforeach; ?>
+				</div>
+
+				<!-- Preferences -->
+				<div class="cp-panel">
+					<div class="cp-panel-heading">
+						<div class="cp-panel-heading-icon" style="background: #64748b;"><i class="fas fa-sliders"></i></div>
+						<div class="cp-panel-heading-title"><?= _("Preferences") ?></div>
+					</div>
+					<div class="cp-panel-body">
+						<a href="/edit/user/?user=<?= $user ?>&token=<?= $_SESSION["token"] ?>" class="cp-item">
+							<div class="cp-item-icon" style="background: #64748b;"><i class="fas fa-circle-user"></i></div>
+							<span class="cp-item-text"><?= _("Edit Profile") ?></span>
+						</a>
+						<?php if ($_SESSION["userContext"] === "admin" && empty($_SESSION["look"])): ?>
+						<a href="/list/server/" class="cp-item">
+							<div class="cp-item-icon" style="background: #64748b;"><i class="fas fa-gear"></i></div>
+							<span class="cp-item-text"><?= _("Server Settings") ?></span>
+						</a>
+						<?php endif; ?>
+					</div>
+				</div>
+
 			</div>
 		</div>
 
-</div>
-	
-	<!-- Tools (cPanel-style category panels) -->
-	<div class="page-title-container" style="margin-top: 10px;">
-		<h2 class="cp-panel-heading-title" style="font-size: 1.4em;"><?= _("Tools") ?></h2>
-	</div>
-	<div class="cp-tools-grid">
+		<!-- Column 2: General Information -->
+		<div class="cp-info-column">
 
-		<!-- Files -->
-		<div class="cp-panel">
-			<div class="cp-panel-heading">
-				<div class="cp-panel-heading-icon" style="background: var(--icon-color-blue);"><i class="fas fa-folder-open"></i></div>
-				<div class="cp-panel-heading-title"><?= _("Files") ?></div>
+			<div class="cp-panel">
+				<div class="cp-panel-heading">
+					<div class="cp-panel-heading-title"><?= _("General Information") ?></div>
+				</div>
+				<div class="cp-info-list">
+					<div class="cp-info-row">
+						<span class="cp-info-label"><?= _("Current User") ?></span>
+						<span class="cp-info-value"><?= htmlspecialchars($user) ?></span>
+					</div>
+					<div class="cp-info-row">
+						<span class="cp-info-label"><?= _("Primary Domain") ?></span>
+						<span class="cp-info-value"><?= htmlspecialchars($primaryDomain) ?></span>
+					</div>
+					<div class="cp-info-row">
+						<span class="cp-info-label"><?= _("SSL Certificate") ?></span>
+						<span class="cp-info-value <?= $sslStatus === "Active" ? "cp-ssl-active" : "cp-ssl-inactive" ?>"><?= _($sslStatus) ?></span>
+					</div>
+					<div class="cp-info-row">
+						<span class="cp-info-label"><?= _("IP Address") ?></span>
+						<span class="cp-info-value"><?= htmlspecialchars($primaryDomainIp) ?></span>
+					</div>
+					<div class="cp-info-row">
+						<span class="cp-info-label"><?= _("Last Login IP") ?></span>
+						<span class="cp-info-value"><?= htmlspecialchars($lastLoginIp) ?></span>
+					</div>
+				</div>
 			</div>
-			<div class="cp-panel-body">
-				<?php if (isset($_SESSION["FILE_MANAGER"]) && !empty($_SESSION["FILE_MANAGER"]) && $_SESSION["FILE_MANAGER"] == "true"): ?>
-				<a href="/fm/" class="cp-item">
-					<div class="cp-item-icon" style="background: var(--icon-color-blue);"><i class="fas fa-folder-open"></i></div>
-					<span class="cp-item-text"><?= _("File Manager") ?></span>
-				</a>
-				<?php endif; ?>
-				<a href="/list/backup/" class="cp-item">
-					<div class="cp-item-icon" style="background: var(--icon-color-blue);"><i class="fas fa-download"></i></div>
-					<span class="cp-item-text"><?= _("Backups") ?></span>
-				</a>
-			</div>
-		</div>
 
-		<!-- Databases -->
-		<div class="cp-panel">
-			<div class="cp-panel-heading">
-				<div class="cp-panel-heading-icon" style="background: var(--icon-color-orange);"><i class="fas fa-database"></i></div>
-				<div class="cp-panel-heading-title"><?= _("Databases") ?></div>
+			<div class="cp-panel">
+				<div class="cp-panel-heading">
+					<div class="cp-panel-heading-title"><?= _("Statistics") ?></div>
+				</div>
+				<div class="cp-info-list">
+					<div class="cp-info-row">
+						<span class="cp-info-label"><?= _("Disk Usage") ?></span>
+						<span class="cp-info-value"><?= humanize_usage_size($panel[$user]["U_DISK"]) ?> / <?= $panel[$user]["DISK_QUOTA"] === "unlimited" ? "&#8734;" : humanize_usage_size($panel[$user]["DISK_QUOTA"]) ?></span>
+					</div>
+					<div class="cp-info-row">
+						<span class="cp-info-label"><?= _("Bandwidth") ?></span>
+						<span class="cp-info-value"><?= humanize_usage_size($panel[$user]["U_BANDWIDTH"]) ?> / <?= $panel[$user]["BANDWIDTH"] === "unlimited" ? "&#8734;" : humanize_usage_size($panel[$user]["BANDWIDTH"]) ?></span>
+					</div>
+					<div class="cp-info-row">
+						<span class="cp-info-label"><?= _("Web Domains") ?></span>
+						<span class="cp-info-value"><?= $panel[$user]["U_WEB_DOMAINS"] ?> / <?= $panel[$user]["WEB_DOMAINS"] === "unlimited" ? "&#8734;" : $panel[$user]["WEB_DOMAINS"] ?></span>
+					</div>
+					<div class="cp-info-row">
+						<span class="cp-info-label"><?= _("Domain Aliases") ?></span>
+						<span class="cp-info-value"><?= $panel[$user]["U_WEB_ALIASES"] ?? 0 ?> / <?= ($panel[$user]["WEB_ALIASES"] ?? "unlimited") === "unlimited" ? "&#8734;" : $panel[$user]["WEB_ALIASES"] ?></span>
+					</div>
+					<div class="cp-info-row">
+						<span class="cp-info-label"><?= _("Email Accounts") ?></span>
+						<span class="cp-info-value"><?= $panel[$user]["U_MAIL_ACCOUNTS"] ?> / <?= $panel[$user]["MAIL_ACCOUNTS"] === "unlimited" ? "&#8734;" : $panel[$user]["MAIL_ACCOUNTS"] ?></span>
+					</div>
+					<div class="cp-info-row">
+						<span class="cp-info-label"><?= _("Mail Domains") ?></span>
+						<span class="cp-info-value"><?= $panel[$user]["U_MAIL_DOMAINS"] ?> / <?= $panel[$user]["MAIL_DOMAINS"] === "unlimited" ? "&#8734;" : $panel[$user]["MAIL_DOMAINS"] ?></span>
+					</div>
+					<div class="cp-info-row">
+						<span class="cp-info-label"><?= _("Databases") ?></span>
+						<span class="cp-info-value"><?= $panel[$user]["U_DATABASES"] ?> / <?= $panel[$user]["DATABASES"] === "unlimited" ? "&#8734;" : $panel[$user]["DATABASES"] ?></span>
+					</div>
+					<div class="cp-info-row">
+						<span class="cp-info-label"><?= _("DNS Zones") ?></span>
+						<span class="cp-info-value"><?= $panel[$user]["U_DNS_DOMAINS"] ?> / <?= $panel[$user]["DNS_DOMAINS"] === "unlimited" ? "&#8734;" : $panel[$user]["DNS_DOMAINS"] ?></span>
+					</div>
+					<div class="cp-info-row">
+						<span class="cp-info-label"><?= _("Cron Jobs") ?></span>
+						<span class="cp-info-value"><?= $panel[$user]["U_CRON_JOBS"] ?> / <?= $panel[$user]["CRON_JOBS"] === "unlimited" ? "&#8734;" : $panel[$user]["CRON_JOBS"] ?></span>
+					</div>
+				</div>
 			</div>
-			<div class="cp-panel-body">
-				<a href="/list/db/" class="cp-item">
-					<div class="cp-item-icon" style="background: var(--icon-color-orange);"><i class="fas fa-database"></i></div>
-					<span class="cp-item-text"><?= _("Databases") ?></span>
-				</a>
-				<a href="/add/db/" class="cp-item">
-					<div class="cp-item-icon" style="background: var(--icon-color-orange);"><i class="fas fa-plus"></i></div>
-					<span class="cp-item-text"><?= _("New Database") ?></span>
-				</a>
-			</div>
-		</div>
 
-		<!-- Domains -->
-		<div class="cp-panel">
-			<div class="cp-panel-heading">
-				<div class="cp-panel-heading-icon" style="background: var(--icon-color-purple);"><i class="fas fa-earth-americas"></i></div>
-				<div class="cp-panel-heading-title"><?= _("Domains") ?></div>
-			</div>
-			<div class="cp-panel-body">
-				<a href="/list/web/" class="cp-item">
-					<div class="cp-item-icon" style="background: var(--icon-color-purple);"><i class="fas fa-earth-americas"></i></div>
-					<span class="cp-item-text"><?= _("Web Domains") ?></span>
-				</a>
-				<a href="/add/web/" class="cp-item">
-					<div class="cp-item-icon" style="background: var(--icon-color-purple);"><i class="fas fa-plus"></i></div>
-					<span class="cp-item-text"><?= _("Add Domain") ?></span>
-				</a>
-				<a href="/list/dns/" class="cp-item">
-					<div class="cp-item-icon" style="background: var(--icon-color-purple);"><i class="fas fa-book-atlas"></i></div>
-					<span class="cp-item-text"><?= _("DNS Zones") ?></span>
-				</a>
-				<a href="/generate/ssl/" class="cp-item">
-					<div class="cp-item-icon" style="background: var(--icon-color-purple);"><i class="fas fa-shield-alt"></i></div>
-					<span class="cp-item-text"><?= _("SSL Certificate") ?></span>
-				</a>
-			</div>
-		</div>
-
-		<!-- Email -->
-		<div class="cp-panel">
-			<div class="cp-panel-heading">
-				<div class="cp-panel-heading-icon" style="background: var(--icon-color-teal);"><i class="fas fa-envelopes-bulk"></i></div>
-				<div class="cp-panel-heading-title"><?= _("Email") ?></div>
-			</div>
-			<div class="cp-panel-body">
-				<a href="/list/mail/" class="cp-item">
-					<div class="cp-item-icon" style="background: var(--icon-color-teal);"><i class="fas fa-envelopes-bulk"></i></div>
-					<span class="cp-item-text"><?= _("Mail Accounts") ?></span>
-				</a>
-				<a href="/add/mail/" class="cp-item">
-					<div class="cp-item-icon" style="background: var(--icon-color-teal);"><i class="fas fa-envelope-open"></i></div>
-					<span class="cp-item-text"><?= _("Create Email") ?></span>
-				</a>
-			</div>
-		</div>
-
-		<!-- Metrics -->
-		<div class="cp-panel">
-			<div class="cp-panel-heading">
-				<div class="cp-panel-heading-icon" style="background: var(--icon-color-green);"><i class="fas fa-chart-line"></i></div>
-				<div class="cp-panel-heading-title"><?= _("Metrics") ?></div>
-			</div>
-			<div class="cp-panel-body">
-				<a href="/list/stats/" class="cp-item">
-					<div class="cp-item-icon" style="background: var(--icon-color-green);"><i class="fas fa-chart-line"></i></div>
-					<span class="cp-item-text"><?= _("Statistics") ?></span>
-				</a>
-				<a href="/list/log/" class="cp-item">
-					<div class="cp-item-icon" style="background: var(--icon-color-green);"><i class="fas fa-history"></i></div>
-					<span class="cp-item-text"><?= _("Logs") ?></span>
-				</a>
-			</div>
-		</div>
-
-		<!-- Security -->
-		<div class="cp-panel">
-			<div class="cp-panel-heading">
-				<div class="cp-panel-heading-icon" style="background: var(--icon-color-red);"><i class="fas fa-shield-halved"></i></div>
-				<div class="cp-panel-heading-title"><?= _("Security") ?></div>
-			</div>
-			<div class="cp-panel-body">
-				<a href="/list/firewall/" class="cp-item">
-					<div class="cp-item-icon" style="background: var(--icon-color-red);"><i class="fas fa-shield-halved"></i></div>
-					<span class="cp-item-text"><?= _("Firewall") ?></span>
-				</a>
-				<a href="/list/ip/" class="cp-item">
-					<div class="cp-item-icon" style="background: var(--icon-color-red);"><i class="fas fa-network-wired"></i></div>
-					<span class="cp-item-text"><?= _("IP Management") ?></span>
-				</a>
-			</div>
-		</div>
-
-		<!-- Advanced -->
-		<div class="cp-panel">
-			<div class="cp-panel-heading">
-				<div class="cp-panel-heading-icon" style="background: var(--icon-color-maroon);"><i class="fas fa-code"></i></div>
-				<div class="cp-panel-heading-title"><?= _("Advanced") ?></div>
-			</div>
-			<div class="cp-panel-body">
-				<a href="/list/cron/" class="cp-item">
-					<div class="cp-item-icon" style="background: var(--icon-color-maroon);"><i class="fas fa-clock"></i></div>
-					<span class="cp-item-text"><?= _("Cron Jobs") ?></span>
-				</a>
-				<?php if (isset($_SESSION["WEB_TERMINAL"]) && !empty($_SESSION["WEB_TERMINAL"]) && $_SESSION["WEB_TERMINAL"] == "true" && $_SESSION["login_shell"] != "nologin"): ?>
-				<a href="/list/terminal/" class="cp-item">
-					<div class="cp-item-icon" style="background: var(--icon-color-maroon);"><i class="fas fa-terminal"></i></div>
-					<span class="cp-item-text"><?= _("Web Terminal") ?></span>
-				</a>
-				<?php endif; ?>
-			</div>
-		</div>
-
-		<!-- Preferences -->
-		<div class="cp-panel">
-			<div class="cp-panel-heading">
-				<div class="cp-panel-heading-icon" style="background: #64748b;"><i class="fas fa-sliders"></i></div>
-				<div class="cp-panel-heading-title"><?= _("Preferences") ?></div>
-			</div>
-			<div class="cp-panel-body">
-				<a href="/edit/user/?user=<?= $user ?>&token=<?= $_SESSION["token"] ?>" class="cp-item">
-					<div class="cp-item-icon" style="background: #64748b;"><i class="fas fa-circle-user"></i></div>
-					<span class="cp-item-text"><?= _("Edit Profile") ?></span>
-				</a>
-				<?php if ($_SESSION["userContext"] === "admin" && empty($_SESSION["look"])): ?>
-				<a href="/list/server/" class="cp-item">
-					<div class="cp-item-icon" style="background: #64748b;"><i class="fas fa-gear"></i></div>
-					<span class="cp-item-text"><?= _("Server Settings") ?></span>
-				</a>
-				<?php endif; ?>
-			</div>
 		</div>
 
 	</div>
