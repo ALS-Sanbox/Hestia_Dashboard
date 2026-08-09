@@ -516,34 +516,169 @@
 
 </div>
 	
-	<!-- Quick Actions -->
-	<div class="quick-actions">
-		<h3><i class="fas fa-bolt"></i> Quick Actions</h3>
-		<div class="action-buttons">
-			<a href="/add/web" class="quick-action-btn">
-				<i class="fas fa-plus"></i>
-				<span><?= _("Add Domain") ?></span>
-			</a>
-			<a href="/add/mail" class="quick-action-btn">
-				<i class="fas fa-envelope-open"></i>
-				<span><?= _("Create Email") ?></span>
-			</a>
-			<a href="/add/db" class="quick-action-btn">
-				<i class="fas fa-database"></i>
-				<span><?= _("New Database") ?></span>
-			</a>
-			<a href="/generate/ssl" class="quick-action-btn">
-				<i class="fas fa-shield-alt"></i>
-				<span><?= _("SSL Certificate") ?></span>
-			</a>
-			<a href="/list/backup" class="quick-action-btn">
-				<i class="fas fa-download"></i>
-				<span><?= _("Backup") ?></span>
-			</a>
-			<a href="/fm" class="quick-action-btn">
-				<i class="fas fa-file-archive"></i>
-				<span><?= _("File Manager") ?></span>
-			</a>
+	<!-- Tools (cPanel-style category panels) -->
+	<div class="page-title-container" style="margin-top: 10px;">
+		<h2 class="cp-panel-heading-title" style="font-size: 1.4em;"><?= _("Tools") ?></h2>
+	</div>
+	<div class="cp-tools-grid">
+
+		<!-- Files -->
+		<div class="cp-panel">
+			<div class="cp-panel-heading">
+				<div class="cp-panel-heading-icon" style="background: var(--icon-color-blue);"><i class="fas fa-folder-open"></i></div>
+				<div class="cp-panel-heading-title"><?= _("Files") ?></div>
+			</div>
+			<div class="cp-panel-body">
+				<?php if (isset($_SESSION["FILE_MANAGER"]) && !empty($_SESSION["FILE_MANAGER"]) && $_SESSION["FILE_MANAGER"] == "true"): ?>
+				<a href="/fm/" class="cp-item">
+					<div class="cp-item-icon" style="background: var(--icon-color-blue);"><i class="fas fa-folder-open"></i></div>
+					<span class="cp-item-text"><?= _("File Manager") ?></span>
+				</a>
+				<?php endif; ?>
+				<a href="/list/backup/" class="cp-item">
+					<div class="cp-item-icon" style="background: var(--icon-color-blue);"><i class="fas fa-download"></i></div>
+					<span class="cp-item-text"><?= _("Backups") ?></span>
+				</a>
+			</div>
 		</div>
+
+		<!-- Databases -->
+		<div class="cp-panel">
+			<div class="cp-panel-heading">
+				<div class="cp-panel-heading-icon" style="background: var(--icon-color-orange);"><i class="fas fa-database"></i></div>
+				<div class="cp-panel-heading-title"><?= _("Databases") ?></div>
+			</div>
+			<div class="cp-panel-body">
+				<a href="/list/db/" class="cp-item">
+					<div class="cp-item-icon" style="background: var(--icon-color-orange);"><i class="fas fa-database"></i></div>
+					<span class="cp-item-text"><?= _("Databases") ?></span>
+				</a>
+				<a href="/add/db/" class="cp-item">
+					<div class="cp-item-icon" style="background: var(--icon-color-orange);"><i class="fas fa-plus"></i></div>
+					<span class="cp-item-text"><?= _("New Database") ?></span>
+				</a>
+			</div>
+		</div>
+
+		<!-- Domains -->
+		<div class="cp-panel">
+			<div class="cp-panel-heading">
+				<div class="cp-panel-heading-icon" style="background: var(--icon-color-purple);"><i class="fas fa-earth-americas"></i></div>
+				<div class="cp-panel-heading-title"><?= _("Domains") ?></div>
+			</div>
+			<div class="cp-panel-body">
+				<a href="/list/web/" class="cp-item">
+					<div class="cp-item-icon" style="background: var(--icon-color-purple);"><i class="fas fa-earth-americas"></i></div>
+					<span class="cp-item-text"><?= _("Web Domains") ?></span>
+				</a>
+				<a href="/add/web/" class="cp-item">
+					<div class="cp-item-icon" style="background: var(--icon-color-purple);"><i class="fas fa-plus"></i></div>
+					<span class="cp-item-text"><?= _("Add Domain") ?></span>
+				</a>
+				<a href="/list/dns/" class="cp-item">
+					<div class="cp-item-icon" style="background: var(--icon-color-purple);"><i class="fas fa-book-atlas"></i></div>
+					<span class="cp-item-text"><?= _("DNS Zones") ?></span>
+				</a>
+				<a href="/generate/ssl/" class="cp-item">
+					<div class="cp-item-icon" style="background: var(--icon-color-purple);"><i class="fas fa-shield-alt"></i></div>
+					<span class="cp-item-text"><?= _("SSL Certificate") ?></span>
+				</a>
+			</div>
+		</div>
+
+		<!-- Email -->
+		<div class="cp-panel">
+			<div class="cp-panel-heading">
+				<div class="cp-panel-heading-icon" style="background: var(--icon-color-teal);"><i class="fas fa-envelopes-bulk"></i></div>
+				<div class="cp-panel-heading-title"><?= _("Email") ?></div>
+			</div>
+			<div class="cp-panel-body">
+				<a href="/list/mail/" class="cp-item">
+					<div class="cp-item-icon" style="background: var(--icon-color-teal);"><i class="fas fa-envelopes-bulk"></i></div>
+					<span class="cp-item-text"><?= _("Mail Accounts") ?></span>
+				</a>
+				<a href="/add/mail/" class="cp-item">
+					<div class="cp-item-icon" style="background: var(--icon-color-teal);"><i class="fas fa-envelope-open"></i></div>
+					<span class="cp-item-text"><?= _("Create Email") ?></span>
+				</a>
+			</div>
+		</div>
+
+		<!-- Metrics -->
+		<div class="cp-panel">
+			<div class="cp-panel-heading">
+				<div class="cp-panel-heading-icon" style="background: var(--icon-color-green);"><i class="fas fa-chart-line"></i></div>
+				<div class="cp-panel-heading-title"><?= _("Metrics") ?></div>
+			</div>
+			<div class="cp-panel-body">
+				<a href="/list/stats/" class="cp-item">
+					<div class="cp-item-icon" style="background: var(--icon-color-green);"><i class="fas fa-chart-line"></i></div>
+					<span class="cp-item-text"><?= _("Statistics") ?></span>
+				</a>
+				<a href="/list/log/" class="cp-item">
+					<div class="cp-item-icon" style="background: var(--icon-color-green);"><i class="fas fa-history"></i></div>
+					<span class="cp-item-text"><?= _("Logs") ?></span>
+				</a>
+			</div>
+		</div>
+
+		<!-- Security -->
+		<div class="cp-panel">
+			<div class="cp-panel-heading">
+				<div class="cp-panel-heading-icon" style="background: var(--icon-color-red);"><i class="fas fa-shield-halved"></i></div>
+				<div class="cp-panel-heading-title"><?= _("Security") ?></div>
+			</div>
+			<div class="cp-panel-body">
+				<a href="/list/firewall/" class="cp-item">
+					<div class="cp-item-icon" style="background: var(--icon-color-red);"><i class="fas fa-shield-halved"></i></div>
+					<span class="cp-item-text"><?= _("Firewall") ?></span>
+				</a>
+				<a href="/list/ip/" class="cp-item">
+					<div class="cp-item-icon" style="background: var(--icon-color-red);"><i class="fas fa-network-wired"></i></div>
+					<span class="cp-item-text"><?= _("IP Management") ?></span>
+				</a>
+			</div>
+		</div>
+
+		<!-- Advanced -->
+		<div class="cp-panel">
+			<div class="cp-panel-heading">
+				<div class="cp-panel-heading-icon" style="background: var(--icon-color-maroon);"><i class="fas fa-code"></i></div>
+				<div class="cp-panel-heading-title"><?= _("Advanced") ?></div>
+			</div>
+			<div class="cp-panel-body">
+				<a href="/list/cron/" class="cp-item">
+					<div class="cp-item-icon" style="background: var(--icon-color-maroon);"><i class="fas fa-clock"></i></div>
+					<span class="cp-item-text"><?= _("Cron Jobs") ?></span>
+				</a>
+				<?php if (isset($_SESSION["WEB_TERMINAL"]) && !empty($_SESSION["WEB_TERMINAL"]) && $_SESSION["WEB_TERMINAL"] == "true" && $_SESSION["login_shell"] != "nologin"): ?>
+				<a href="/list/terminal/" class="cp-item">
+					<div class="cp-item-icon" style="background: var(--icon-color-maroon);"><i class="fas fa-terminal"></i></div>
+					<span class="cp-item-text"><?= _("Web Terminal") ?></span>
+				</a>
+				<?php endif; ?>
+			</div>
+		</div>
+
+		<!-- Preferences -->
+		<div class="cp-panel">
+			<div class="cp-panel-heading">
+				<div class="cp-panel-heading-icon" style="background: #64748b;"><i class="fas fa-sliders"></i></div>
+				<div class="cp-panel-heading-title"><?= _("Preferences") ?></div>
+			</div>
+			<div class="cp-panel-body">
+				<a href="/edit/user/?user=<?= $user ?>&token=<?= $_SESSION["token"] ?>" class="cp-item">
+					<div class="cp-item-icon" style="background: #64748b;"><i class="fas fa-circle-user"></i></div>
+					<span class="cp-item-text"><?= _("Edit Profile") ?></span>
+				</a>
+				<?php if ($_SESSION["userContext"] === "admin" && empty($_SESSION["look"])): ?>
+				<a href="/list/server/" class="cp-item">
+					<div class="cp-item-icon" style="background: #64748b;"><i class="fas fa-gear"></i></div>
+					<span class="cp-item-text"><?= _("Server Settings") ?></span>
+				</a>
+				<?php endif; ?>
+			</div>
+		</div>
+
 	</div>
 </div>

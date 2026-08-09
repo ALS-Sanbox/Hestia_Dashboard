@@ -63,9 +63,10 @@ body {
     display: none;
 }
 
-/* Hamburger button */
+/* Hamburger button - cPanel has no persistent sidebar, so this menu toggle
+   is always visible (not just on mobile) and lives inside the top bar. */
 .hamburger-menu {
-    display: none;
+    display: flex;
     position: fixed;
     top: 8px;
     left: 16px;
@@ -79,6 +80,7 @@ body {
     justify-content: center;
     gap: 6px;
     transition: all var(--animate-duration);
+    box-shadow: 0 1px 3px rgba(8, 25, 62, 0.15);
 }
 
 .hamburger-line {
@@ -103,9 +105,11 @@ body {
     transform: rotate(-45deg) translate(7px, -6px);
 }
 
-/* Mobile overlay when sidebar is open */
+/* Overlay behind the sidebar drawer when open. Uses opacity/visibility
+   (not display:none) so it can actually transition/fade - display:none
+   would block the transition and the sibling selector below never toggles
+   a display property, so it would otherwise never appear at all. */
 .mobile-overlay {
-    display: none;
     position: fixed;
     top: 0;
     left: 0;
@@ -114,13 +118,16 @@ body {
     z-index: 999;
     opacity: 0;
     visibility: hidden;
+    pointer-events: none;
     transition: all var(--animate-duration);
     cursor: pointer;
+    background: rgba(8, 25, 62, 0.5);
 }
 
 #mobile-menu-toggle:checked ~ .mobile-overlay {
     opacity: 1;
     visibility: visible;
+    pointer-events: auto;
 }
 
 /* =============================================================================
@@ -136,7 +143,7 @@ body {
     display: flex;
     align-items: center;
     justify-content: space-between;
-    padding: 0 20px;
+    padding: 0 20px 0 64px;
     background: #ffffff;
     border-bottom: 1px solid #e6e9ef;
     z-index: 1100;
@@ -172,24 +179,26 @@ body {
     color: var(--color-text-link, #4259ed);
 }
 
+/* cPanel has no persistent left nav in this view - the sidebar is an
+   off-canvas drawer, hidden by default at every screen width and slid in
+   over the content when the top bar's menu button is toggled. */
 .sidebar {
-    width: var(--sidebar-width);
+    width: 260px;
     min-height: calc(100vh - 56px);
     position: fixed;
     top: 56px;
     left: 0;
     display: flex;
     flex-direction: column;
-    transition: width var(--animate-duration);
+    transform: translateX(-100%);
+    transition: transform var(--animate-duration);
     overflow-y: auto;
     overflow-x: hidden;
     z-index: 1000;
     background: #08193e;
+    box-shadow: 4px 0 24px rgba(0, 0, 0, 0.15);
 }
 
-.sidebar:hover {
-    width: var(--sidebar-width-expanded);
-}
 .sidebar::-webkit-scrollbar {
     width: 6px;
 }
@@ -197,51 +206,19 @@ body {
     background: rgba(0,0,0,0.2);
     border-radius: 3px;
 }
-/* CSS-only sidebar toggle for mobile */
+/* CSS-only sidebar drawer toggle, driven by the checkbox rendered in
+   panel.php and the menu button label in header.php */
 #mobile-menu-toggle:checked ~ .app2 .sidebar {
     transform: translateX(0);
 }
 
-/* Make sidebar labels visible when menu is open */
-#mobile-menu-toggle:checked ~ .app .sidebar .sidebar-logo .sidebar-label,
-#mobile-menu-toggle:checked ~ .app .sidebar .sidebar-usage-item .sidebar-label,
-#mobile-menu-toggle:checked ~ .app .sidebar .sidebar-menu a .sidebar-label,
-#mobile-menu-toggle:checked ~ .app .sidebar .sidebar-tabs a .sidebar-label {
-    opacity: 1;
-}
-
-/* Sidebar Logo */
-.sidebar-logo {
-    padding: 15px;
-    display: flex;
-    align-items: center;
-    justify-content: center;
-    transition: var(--animate-duration);
-}
-
-.sidebar-logo img {
-    width: 40px;
-    height: auto;
-    flex-shrink: 0;
-}
-
-/* Sidebar Labels */
-.sidebar-logo .sidebar-label,
+/* Sidebar Labels - always shown at full width; there's no icon-only
+   collapsed state anymore since the drawer is either open or fully hidden */
 .sidebar-usage-item .sidebar-label,
 .sidebar-menu a .sidebar-label,
 .sidebar-tabs a .sidebar-label {
-    opacity: 0;
     margin-left: 10px;
     white-space: nowrap;
-    transition: opacity var(--animate-duration);
-}
-
-.sidebar:hover .sidebar-logo .sidebar-label,
-.sidebar:hover .sidebar-usage-item .sidebar-label,
-.sidebar:hover .sidebar-menu a .sidebar-label,
-.sidebar:hover .sidebar-tabs a .sidebar-label,
-.sidebar-submenu a .sidebar-label {
-    opacity: 1;
 }
 
 /* Sidebar Menu Items */
@@ -1607,10 +1584,103 @@ button {
 			align-items: center;
 			gap: 10px;
 		}
-		
+
+/* =============================================================================
+   CPANEL-STYLE TOOLS GRID (category panels + icon grid, mirrors the real
+   cPanel Home/Tools page: white panels with a header, each containing a
+   wrapped row of icon+label items)
+   ============================================================================= */
+
+.cp-tools-grid {
+    display: grid;
+    grid-template-columns: repeat(auto-fit, minmax(300px, 1fr));
+    gap: 20px;
+    margin-bottom: 30px;
+}
+
+.cp-panel {
+    background: #ffffff;
+    border: 1px solid #e6e9ef;
+    border-radius: 6px;
+    overflow: hidden;
+}
+
+.cp-panel-heading {
+    display: flex;
+    align-items: center;
+    gap: 10px;
+    padding: 14px 16px;
+    border-bottom: 1px solid #e6e9ef;
+}
+
+.cp-panel-heading-icon {
+    width: 30px;
+    height: 30px;
+    border-radius: 50%;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    color: #fff;
+    font-size: 0.9em;
+    flex-shrink: 0;
+}
+
+.cp-panel-heading-title {
+    font-weight: 600;
+    font-size: 1em;
+    color: #08193e;
+}
+
+.cp-panel-body {
+    display: flex;
+    flex-wrap: wrap;
+    padding: 10px;
+}
+
+.cp-item {
+    display: flex;
+    align-items: center;
+    gap: 10px;
+    width: 100%;
+    padding: 8px 10px;
+    border-radius: 6px;
+    text-decoration: none;
+    transition: background var(--animate-duration);
+}
+
+@media (min-width: 480px) {
+    .cp-item {
+        width: 50%;
+    }
+}
+
+.cp-item:hover {
+    background: #f7f8fa;
+    text-decoration: none;
+}
+
+.cp-item-icon {
+    width: 36px;
+    height: 36px;
+    border-radius: 8px;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    color: #fff;
+    font-size: 0.95em;
+    flex-shrink: 0;
+}
+
+.cp-item-text {
+    color: var(--color-text-link, #4259ed);
+    font-size: 0.9em;
+    font-weight: 500;
+    line-height: 1.25;
+}
+
 .hestia-dashboard-container {
     max-width: none;
     margin: inherit;
-    margin-left: 60px;
+    margin-left: 0;
     margin-top: 56px;
 }
