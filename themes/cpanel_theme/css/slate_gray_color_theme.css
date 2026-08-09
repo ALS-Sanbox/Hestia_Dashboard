@@ -550,7 +550,8 @@ button.css-theme-btn:hover {
    ============================================================================= */
 
 .toolbar {
-    background: linear-gradient(#3f3b3b 0%, #ffffff26 100%);
+    background: var(--bg-glass);
+    border: 1px solid var(--border-glass);
 }
 
 .toolbar .form-select {
@@ -565,7 +566,8 @@ button.css-theme-btn:hover {
    ============================================================================= */
 
 .units-table-header {
-    background: linear-gradient(#3f3b3b 0%, #ffffff26 100%);
+    background: var(--bg-glass-light);
+    border-bottom: 1px solid var(--border-glass);
     color: var(--color-text);
 }
 
