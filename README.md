@@ -24,6 +24,24 @@ Bundled themes:
 
 ---
 
+## Screenshots
+
+<!--
+  Drop a PNG/JPG for each theme into screenshots/ using the filenames below
+  and these will render automatically - no other changes needed. See
+  screenshots/README.md for capture tips.
+-->
+
+| Dark Glass Theme | Glass Theme |
+|---|---|
+| ![Dark Glass Theme](screenshots/dark_glass_theme.png) | ![Glass Theme](screenshots/glass_theme.png) |
+
+| Max Theme | Panel Theme |
+|---|---|
+| ![Max Theme](screenshots/maxtheme.png) | ![Panel Theme](screenshots/panel_theme.png) |
+
+---
+
 ## Installation
 
 ```bash
